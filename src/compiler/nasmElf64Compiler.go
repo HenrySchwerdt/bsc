@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"bsc/src/exeptions"
 	"bsc/src/parser"
 	"bytes"
 	"fmt"
@@ -10,22 +11,40 @@ import (
 	"strings"
 )
 
+type variable struct {
+	StackLocation int
+}
+
 type NASMElf64Compiler struct {
-	Ast parser.Node
-	Out strings.Builder
+	Ast       parser.Node
+	Out       strings.Builder
+	StackSize int
+	Variables map[string]*variable
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 	var builder strings.Builder
 	return &NASMElf64Compiler{
-		Ast: ast,
-		Out: builder,
+		Ast:       ast,
+		Out:       builder,
+		StackSize: 0,
+		Variables: make(map[string]*variable),
 	}
+}
+
+func (c *NASMElf64Compiler) push(reg string) {
+	c.Out.WriteString(fmt.Sprintf("    push %s\n", reg))
+	c.StackSize += 1
+}
+
+func (c *NASMElf64Compiler) pop(reg string) {
+	c.Out.WriteString(fmt.Sprintf("    pop %s\n", reg))
+	c.StackSize -= 1
 }
 
 func (c *NASMElf64Compiler) VisitLiteral(l *parser.Literal) error {
 	c.Out.WriteString(fmt.Sprintf("    mov rax, %d\n", l.Value.(int64)))
-	c.Out.WriteString("    push rax\n")
+	c.push("rax")
 	return nil
 }
 
@@ -50,14 +69,34 @@ func (c *NASMElf64Compiler) VisitExpressionStatement(es *parser.ExpressionStatem
 }
 
 func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarator) error {
-	return nil
+	if _, exists := c.Variables[vd.Id]; exists {
+		return &exeptions.CompilerError{
+			File:    "Bla",
+			Line:    1,
+			Column:  1,
+			Message: fmt.Sprintf("CompileError: Cannot declare a variable that already exists: '%s'", vd.Id),
+		}
+	}
+	c.Variables[vd.Id] = &variable{
+		StackLocation: c.StackSize,
+	}
+	return vd.Init.Accept(c)
 }
 
 func (c *NASMElf64Compiler) VisitVariableDeclaration(vd *parser.VariableDeclaration) error {
-	return nil
+	return vd.Declaration.Accept(c)
 }
 
 func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error {
+	if _, exists := c.Variables[vl.Id]; !exists {
+		return &exeptions.CompilerError{
+			File:    "Bla",
+			Line:    1,
+			Column:  1,
+			Message: fmt.Sprintf("CompileError: Undeclared Identifier '%s'", vl.Id),
+		}
+	}
+	c.push(fmt.Sprintf("QWORD [rsp + %d]", (c.StackSize-c.Variables[vl.Id].StackLocation-1)*8))
 	return nil
 }
 
@@ -94,7 +133,7 @@ func (c *NASMElf64Compiler) VisitExitStatment(es *parser.ExitStatment) error {
 		return err
 	}
 	c.Out.WriteString("    mov rax, 60\n")
-	c.Out.WriteString("    pop rdi\n")
+	c.pop("rdi")
 	c.Out.WriteString("    syscall\n")
 	return nil
 }
