@@ -157,8 +157,9 @@ func (p *Parser) parseExpression() (Node, error) {
 	}
 	for {
 		if p.peek().Type == lexer.TK_PLUS || p.peek().Type == lexer.TK_MINUS {
-			op := p.advance().Literal
-			right, err := p.parseFactor()
+			op := p.peek().Literal
+			p.advance()
+			right, err := p.parseExpression()
 			if err != nil {
 				return nil, err
 			}

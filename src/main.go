@@ -40,7 +40,7 @@ func main() {
 		if compilerErr, ok := err.(*exeptions.CompilerError); ok {
 			fmt.Println(compilerErr.Error())
 		} else {
-			fmt.Println(err) // Handle other types of errors normally
+			fmt.Println(err)
 		}
 	}
 }

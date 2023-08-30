@@ -57,6 +57,12 @@ func (c *NASMElf64Compiler) VisitUnaryExpression(ue *parser.UnaryExpression) err
 }
 
 func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) error {
+	be.Left.Accept(c)
+	be.Right.Accept(c)
+	c.pop("rax")
+	c.pop("rbx")
+	c.Out.WriteString("    add rax, rbx\n")
+	c.push("rax")
 	return nil
 }
 
