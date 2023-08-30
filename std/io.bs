@@ -1,0 +1,13 @@
+
+
+fn print(arg : Int) : void {
+
+}
+
+fn print(arg : Float) : void {
+
+}
+
+fn print(arg: String) : void {
+    
+}

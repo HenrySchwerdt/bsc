@@ -1,0 +1,16 @@
+class
+struct
+if
+else
+true
+false
+for
+while
+fn
+null
+return
+super
+this
+val
+var
+exit
