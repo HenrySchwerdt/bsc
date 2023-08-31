@@ -57,13 +57,56 @@ func (c *NASMElf64Compiler) VisitUnaryExpression(ue *parser.UnaryExpression) err
 }
 
 func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) error {
-	be.Left.Accept(c)
-	be.Right.Accept(c)
-	c.pop("rax")
-	c.pop("rbx")
-	c.Out.WriteString("    add rax, rbx\n")
-	c.push("rax")
-	return nil
+	switch be.Operator {
+	case "+":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rax")
+		c.pop("rbx")
+		c.Out.WriteString("    add rax, rbx\n")
+		c.push("rax")
+		return nil
+	case "-":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    sub rax, rbx\n")
+		c.push("rax")
+		return nil
+	case "&":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rax")
+		c.pop("rbx")
+		c.Out.WriteString("    and rax, rbx\n")
+		c.push("rax")
+		return nil
+	case "|":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rax")
+		c.pop("rbx")
+		c.Out.WriteString("    or rax, rbx\n")
+		c.push("rax")
+		return nil
+	case "*":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rax")
+		c.pop("rbx")
+		c.Out.WriteString("    mul rbx\n")
+		c.push("rax")
+		return nil
+	default:
+		return &exeptions.CompilerError{
+			File:    "Bla",
+			Line:    1,
+			Column:  1,
+			Message: fmt.Sprintf("CompileError: Unkown BinaryExpression Operator: '%s'", be.Operator),
+		}
+	}
+
 }
 
 func (c *NASMElf64Compiler) VisitConditionalExpression(ce *parser.ConditionalExpression) error {
@@ -145,6 +188,14 @@ func (c *NASMElf64Compiler) VisitExitStatment(es *parser.ExitStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatement) error {
+	if _, exists := c.Variables[as.Identifier]; !exists {
+		return &exeptions.CompilerError{
+			File:    "Bla",
+			Line:    1,
+			Column:  1,
+			Message: fmt.Sprintf("CompileError: Cannot assing an unassigned variable '%s'", as.Identifier),
+		}
+	}
 	return nil
 }
 

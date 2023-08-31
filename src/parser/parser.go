@@ -107,17 +107,17 @@ func (p *Parser) parseTerm() (Node, error) {
 	}
 	for {
 		if p.peek().Type == lexer.TK_STAR || p.peek().Type == lexer.TK_SLASH {
-			op := p.advance().Literal
+			op := p.peek().Literal
+			p.advance()
 			right, err := p.parseFactor()
 			if err != nil {
 				return nil, err
 			}
-			binExpr := &BinaryExpression{
+			left = &BinaryExpression{
 				Left:     left,
 				Right:    right,
 				Operator: op,
 			}
-			return binExpr, nil
 		} else {
 			break
 		}
@@ -137,12 +137,11 @@ func (p *Parser) parseComp() (Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			binExpr := &BinaryExpression{
+			left = &BinaryExpression{
 				Left:     left,
 				Right:    right,
 				Operator: op,
 			}
-			return binExpr, nil
 		} else {
 			break
 		}
@@ -159,16 +158,15 @@ func (p *Parser) parseExpression() (Node, error) {
 		if p.peek().Type == lexer.TK_PLUS || p.peek().Type == lexer.TK_MINUS {
 			op := p.peek().Literal
 			p.advance()
-			right, err := p.parseExpression()
+			right, err := p.parseComp()
 			if err != nil {
 				return nil, err
 			}
-			binExpr := &BinaryExpression{
+			left = &BinaryExpression{
 				Left:     left,
 				Right:    right,
 				Operator: op,
 			}
-			return binExpr, nil
 		} else {
 			break
 		}
