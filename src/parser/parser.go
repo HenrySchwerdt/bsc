@@ -245,7 +245,6 @@ func (p *Parser) parseAssignmentStatement() (Node, error) {
 		return nil, err
 	}
 	p.advance()
-	p.advance()
 
 	assignment := &AssignmentStatement{
 		Identifier: ident,

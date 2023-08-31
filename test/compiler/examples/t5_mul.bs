@@ -1,4 +1,4 @@
 var x = 10;
 var y = 5;
-var z = x * y + 5 - x;
-exit(z); 
+x = x * y + 5 - x;
+exit(x); 

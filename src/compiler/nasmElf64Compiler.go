@@ -188,7 +188,8 @@ func (c *NASMElf64Compiler) VisitExitStatment(es *parser.ExitStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatement) error {
-	if _, exists := c.Variables[as.Identifier]; !exists {
+	variable, exists := c.Variables[as.Identifier]
+	if !exists {
 		return &exeptions.CompilerError{
 			File:    "Bla",
 			Line:    1,
@@ -196,6 +197,10 @@ func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatem
 			Message: fmt.Sprintf("CompileError: Cannot assing an unassigned variable '%s'", as.Identifier),
 		}
 	}
+	as.Value.Accept(c)
+	// TODO may be wrong
+	c.Out.WriteString(fmt.Sprintf("    mov QWORD [rsp + %d], rax\n", (c.StackSize-variable.StackLocation-1)*8))
+
 	return nil
 }
 
