@@ -98,6 +98,66 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		c.Out.WriteString("    mul rbx\n")
 		c.push("rax")
 		return nil
+	case "==":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    sete al\n") // Set AL if equal
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
+	case "!=":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    setne al\n") // Set AL if not equal
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
+	case "<":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    setl al\n") // Set AL if less than
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
+	case ">":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    setg al\n")
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
+	case "<=":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    setle al\n")
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
+	case ">=":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.Out.WriteString("    cmp rax, rbx\n")
+		c.Out.WriteString("    setge al\n")
+		c.Out.WriteString("    movzx rax, al\n")
+		c.push("rax")
+		return nil
 	default:
 		return &exeptions.CompilerError{
 			File:    "Bla",

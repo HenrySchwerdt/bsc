@@ -132,7 +132,8 @@ func (p *Parser) parseComp() (Node, error) {
 	}
 	for {
 		if p.peek().Type == lexer.TK_EQUAL_EQUAL || p.peek().Type == lexer.TK_GREATER || p.peek().Type == lexer.TK_LESS || p.peek().Type == lexer.TK_GREATER_EQUAL || p.peek().Type == lexer.TK_LESS_EQUAL {
-			op := p.advance().Literal
+			op := p.peek().Literal
+			p.advance()
 			right, err := p.parseTerm()
 			if err != nil {
 				return nil, err

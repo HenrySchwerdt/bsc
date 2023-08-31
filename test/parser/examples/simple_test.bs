@@ -1,2 +1,5 @@
-var y = 12 + 10 * x;
+var x = 10 - 2 * 3;
+var y = 6;
+var z = x == y;
+
 exit(x);
