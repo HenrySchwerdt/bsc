@@ -16,24 +16,34 @@ type variable struct {
 }
 
 type NASMElf64Compiler struct {
-	Ast       parser.Node
-	Out       strings.Builder
-	StackSize int
-	Variables map[string]*variable
-	LoopCount int
+	Ast            parser.Node
+	Out            strings.Builder
+	StackSize      int
+	Variables      map[string]*variable
+	VariableScopes []map[string]*variable
+	LoopCount      int
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 	var builder strings.Builder
 	return &NASMElf64Compiler{
-		Ast:       ast,
-		Out:       builder,
-		StackSize: 0,
-		Variables: make(map[string]*variable),
-		LoopCount: 0,
+		Ast:            ast,
+		Out:            builder,
+		StackSize:      0,
+		Variables:      make(map[string]*variable),
+		VariableScopes: []map[string]*variable{make(map[string]*variable)},
+		LoopCount:      0,
 	}
 }
 
+func (c *NASMElf64Compiler) findVariable(id string) (*variable, bool) {
+	for i := len(c.VariableScopes) - 1; i >= 0; i-- {
+		if variable, exists := c.VariableScopes[i][id]; exists {
+			return variable, true
+		}
+	}
+	return nil, false
+}
 func (c *NASMElf64Compiler) push(reg string) {
 	c.Out.WriteString(fmt.Sprintf("    push %s\n", reg))
 	c.StackSize++
@@ -180,7 +190,8 @@ func (c *NASMElf64Compiler) VisitExpressionStatement(es *parser.ExpressionStatem
 }
 
 func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarator) error {
-	if _, exists := c.Variables[vd.Id]; exists {
+	currentScope := c.VariableScopes[len(c.VariableScopes)-1]
+	if _, exists := currentScope[vd.Id]; exists {
 		return &exeptions.CompilerError{
 			File:    "Bla",
 			Line:    1,
@@ -191,10 +202,9 @@ func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarato
 	if err := vd.Init.Accept(c); err != nil {
 		return err
 	}
-	c.Variables[vd.Id] = &variable{
+	currentScope[vd.Id] = &variable{
 		StackLocation: c.StackSize,
 	}
-
 	return nil
 }
 
@@ -203,7 +213,7 @@ func (c *NASMElf64Compiler) VisitVariableDeclaration(vd *parser.VariableDeclarat
 }
 
 func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error {
-	variable, exists := c.Variables[vl.Id]
+	variable, exists := c.findVariable(vl.Id)
 	if !exists {
 		return &exeptions.CompilerError{
 			File:    "Bla",
@@ -240,15 +250,23 @@ func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error
 func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 	c.LoopCount += 1
 	tmpCount := c.LoopCount
+	tmpStackCount := c.StackSize
+
 	c.Out.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
+
 	if err := ws.Test.Accept(c); err != nil {
 		return err
 	}
+	c.pop("rax")
 	c.Out.WriteString("    test rax, rax\n")
 	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
 
 	if err := ws.Body.Accept(c); err != nil {
 		return err
+	}
+	fmt.Println(tmpStackCount, c.StackSize)
+	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+		c.pop("rax")
 	}
 	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
 	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
@@ -256,12 +274,13 @@ func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitBlockStatement(bs *parser.BlockStatement) error {
-	// TODO add scopes
+	c.VariableScopes = append(c.VariableScopes, make(map[string]*variable))
 	for _, node := range bs.Instructions {
 		if err := node.Accept(c); err != nil {
 			return err
 		}
 	}
+	c.VariableScopes = c.VariableScopes[:len(c.VariableScopes)-1]
 	return nil
 }
 
@@ -276,7 +295,7 @@ func (c *NASMElf64Compiler) VisitExitStatment(es *parser.ExitStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatement) error {
-	variable, exists := c.Variables[as.Identifier]
+	variable, exists := c.findVariable(as.Identifier)
 	if !exists {
 		return &exeptions.CompilerError{
 			File:    "Bla",

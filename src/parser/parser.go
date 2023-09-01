@@ -261,9 +261,7 @@ func (p *Parser) parseBlockStatement() (Node, error) {
 		if p.current.Type == lexer.TK_RIGHT_BRACE || p.current.Type == lexer.TK_EOF {
 			break
 		}
-		fmt.Println("Block Calls parse Statement")
 		stmt, err := p.parseStatement()
-		fmt.Println(p.current, p.next)
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +285,6 @@ func (p *Parser) parseWhileStatement() (Node, error) {
 		return nil, err
 	}
 	p.advance()
-	fmt.Println("While Calls parse Statement")
 	body, err := p.parseStatement()
 	return &WhileStatment{
 		Test: test,
@@ -296,7 +293,6 @@ func (p *Parser) parseWhileStatement() (Node, error) {
 }
 
 func (p *Parser) parseStatement() (Node, error) {
-	fmt.Println("Parse Statement")
 	switch p.current.Type {
 	case lexer.TK_EXIT:
 		return p.parseExitStatement()

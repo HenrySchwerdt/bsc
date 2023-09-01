@@ -1,10 +1,10 @@
 var x = 0;
 var sum = 0;
 while (x <= 3) {
-    var innerX = 0;
-    while(innerX <= 3) {
-        innerX = innerX + 1;
-        sum = sum + innerX;
+    var xI = 0;
+    while(xI <= 3) {
+        xI = xI + 1;
+        sum = sum + xI;
     }
     x = x + 1;
     sum = sum + x;

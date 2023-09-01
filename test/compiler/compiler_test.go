@@ -255,8 +255,8 @@ func TestBsPrograms(t *testing.T) {
 		if err := cmd.Run(); err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
 				fmt.Println(exitError.ExitCode())
-				if exitError.ExitCode() != 66 {
-					t.Fatalf("Expected exit code 66, but got: %d", exitError.ExitCode())
+				if exitError.ExitCode() != 50 {
+					t.Fatalf("Expected exit code 50, but got: %d", exitError.ExitCode())
 				}
 			} else {
 				t.Fatalf("Could not run the program: %s", err)
