@@ -232,7 +232,7 @@ func TestBsPrograms(t *testing.T) {
 		}
 		os.RemoveAll(fileName)
 	})
-	t.Run("Should compile and exit with exitcode 66", func(t *testing.T) {
+	t.Run("Should compile and exit with exitcode 147", func(t *testing.T) {
 		// given
 		fileName := "t8_sum_to_50"
 		file, _ := os.Open("./examples/" + fileName + ".bs")
@@ -255,8 +255,40 @@ func TestBsPrograms(t *testing.T) {
 		if err := cmd.Run(); err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
 				fmt.Println(exitError.ExitCode())
-				if exitError.ExitCode() != 50 {
-					t.Fatalf("Expected exit code 50, but got: %d", exitError.ExitCode())
+				if exitError.ExitCode() != 147 {
+					t.Fatalf("Expected exit code 147, but got: %d", exitError.ExitCode())
+				}
+			} else {
+				t.Fatalf("Could not run the program: %s", err)
+			}
+		}
+		os.RemoveAll(fileName)
+	})
+	t.Run("Should compile and exit with exitcode 34", func(t *testing.T) {
+		// given
+		fileName := "t9_fib"
+		file, _ := os.Open("./examples/" + fileName + ".bs")
+		defer file.Close()
+		tokenizer := lexer.NewTokenizer(file)
+		parser := parser.NewParser(tokenizer)
+		ast, err := parser.Parse()
+		if err != nil {
+			fmt.Println(err)
+		}
+		compiler := compiler.NewNASMElf64Compiler(ast)
+
+		// when
+		err = compiler.Compile(fileName, "out")
+		if err != nil {
+			t.Fatalf("Compilation error: %s", err)
+		}
+		// then
+		cmd := exec.Command("./" + fileName + "/out")
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				fmt.Println(exitError.ExitCode())
+				if exitError.ExitCode() != 34 {
+					t.Fatalf("Expected exit code 34, but got: %d", exitError.ExitCode())
 				}
 			} else {
 				t.Fatalf("Could not run the program: %s", err)

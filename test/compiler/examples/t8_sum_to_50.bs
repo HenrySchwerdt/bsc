@@ -1,8 +1,8 @@
 var x = 0;
 var sum = 0;
-while (x <= 3) {
+while (x <= 5) {
     var xI = 0;
-    while(xI <= 3) {
+    while(xI <= 5) {
         xI = xI + 1;
         sum = sum + xI;
     }
