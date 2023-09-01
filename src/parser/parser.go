@@ -254,7 +254,49 @@ func (p *Parser) parseAssignmentStatement() (Node, error) {
 	return assignment, nil
 }
 
+func (p *Parser) parseBlockStatement() (Node, error) {
+	stmts := make([]Node, 0)
+	p.advance()
+	for {
+		if p.current.Type == lexer.TK_RIGHT_BRACE || p.current.Type == lexer.TK_EOF {
+			break
+		}
+		fmt.Println("Block Calls parse Statement")
+		stmt, err := p.parseStatement()
+		fmt.Println(p.current, p.next)
+		if err != nil {
+			return nil, err
+		}
+		stmts = append(stmts, stmt)
+	}
+	p.advance()
+	return &BlockStatement{
+		Instructions: stmts,
+	}, nil
+}
+
+func (p *Parser) parseWhileStatement() (Node, error) {
+	if err := p.match(lexer.TK_LEFT_PAREN, "("); err != nil {
+		return nil, err
+	}
+	test, err := p.parseComp()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.match(lexer.TK_RIGHT_PAREN, ")"); err != nil {
+		return nil, err
+	}
+	p.advance()
+	fmt.Println("While Calls parse Statement")
+	body, err := p.parseStatement()
+	return &WhileStatment{
+		Test: test,
+		Body: body,
+	}, nil
+}
+
 func (p *Parser) parseStatement() (Node, error) {
+	fmt.Println("Parse Statement")
 	switch p.current.Type {
 	case lexer.TK_EXIT:
 		return p.parseExitStatement()
@@ -262,6 +304,10 @@ func (p *Parser) parseStatement() (Node, error) {
 		return p.parseDeleclarationStatement()
 	case lexer.TK_VAR:
 		return p.parseDeleclarationStatement()
+	case lexer.TK_LEFT_BRACE:
+		return p.parseBlockStatement()
+	case lexer.TK_WHILE:
+		return p.parseWhileStatement()
 	case lexer.TK_IDENTIFIER:
 		return p.parseAssignmentStatement()
 	default:

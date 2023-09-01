@@ -20,6 +20,7 @@ type NASMElf64Compiler struct {
 	Out       strings.Builder
 	StackSize int
 	Variables map[string]*variable
+	LoopCount int
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
@@ -29,17 +30,18 @@ func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 		Out:       builder,
 		StackSize: 0,
 		Variables: make(map[string]*variable),
+		LoopCount: 0,
 	}
 }
 
 func (c *NASMElf64Compiler) push(reg string) {
 	c.Out.WriteString(fmt.Sprintf("    push %s\n", reg))
-	c.StackSize += 1
+	c.StackSize++
 }
 
 func (c *NASMElf64Compiler) pop(reg string) {
 	c.Out.WriteString(fmt.Sprintf("    pop %s\n", reg))
-	c.StackSize -= 1
+	c.StackSize--
 }
 
 func (c *NASMElf64Compiler) VisitLiteral(l *parser.Literal) error {
@@ -61,8 +63,8 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 	case "+":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rax")
 		c.pop("rbx")
+		c.pop("rax")
 		c.Out.WriteString("    add rax, rbx\n")
 		c.push("rax")
 		return nil
@@ -77,24 +79,24 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 	case "&":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rax")
 		c.pop("rbx")
+		c.pop("rax")
 		c.Out.WriteString("    and rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "|":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rax")
 		c.pop("rbx")
+		c.pop("rax")
 		c.Out.WriteString("    or rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "*":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rax")
 		c.pop("rbx")
+		c.pop("rax")
 		c.Out.WriteString("    mul rbx\n")
 		c.push("rax")
 		return nil
@@ -141,8 +143,8 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 	case "<=":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rbx")
 		c.pop("rax")
+		c.pop("rbx")
 		c.Out.WriteString("    cmp rax, rbx\n")
 		c.Out.WriteString("    setle al\n")
 		c.Out.WriteString("    movzx rax, al\n")
@@ -186,10 +188,14 @@ func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarato
 			Message: fmt.Sprintf("CompileError: Cannot declare a variable that already exists: '%s'", vd.Id),
 		}
 	}
+	if err := vd.Init.Accept(c); err != nil {
+		return err
+	}
 	c.Variables[vd.Id] = &variable{
 		StackLocation: c.StackSize,
 	}
-	return vd.Init.Accept(c)
+
+	return nil
 }
 
 func (c *NASMElf64Compiler) VisitVariableDeclaration(vd *parser.VariableDeclaration) error {
@@ -197,7 +203,8 @@ func (c *NASMElf64Compiler) VisitVariableDeclaration(vd *parser.VariableDeclarat
 }
 
 func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error {
-	if _, exists := c.Variables[vl.Id]; !exists {
+	variable, exists := c.Variables[vl.Id]
+	if !exists {
 		return &exeptions.CompilerError{
 			File:    "Bla",
 			Line:    1,
@@ -205,7 +212,8 @@ func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error
 			Message: fmt.Sprintf("CompileError: Undeclared Identifier '%s'", vl.Id),
 		}
 	}
-	c.push(fmt.Sprintf("QWORD [rsp + %d]", (c.StackSize-c.Variables[vl.Id].StackLocation-1)*8))
+	c.Out.WriteString(fmt.Sprintf("    mov rax, QWORD [rbp - %d]\n", (variable.StackLocation)*8))
+	c.push("rax")
 	return nil
 }
 
@@ -230,10 +238,29 @@ func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error
 }
 
 func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
+	c.Out.WriteString(fmt.Sprintf(".L%d:\n", c.LoopCount))
+	if err := ws.Test.Accept(c); err != nil {
+		return err
+	}
+	c.Out.WriteString("    test rax, rax\n")
+	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", c.LoopCount))
+
+	if err := ws.Body.Accept(c); err != nil {
+		return err
+	}
+	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", c.LoopCount))
+	c.Out.WriteString(fmt.Sprintf(".E%d:\n", c.LoopCount))
+	c.LoopCount += 1
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitBlockStatement(bs *parser.BlockStatement) error {
+	// TODO add scopes
+	for _, node := range bs.Instructions {
+		if err := node.Accept(c); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -254,24 +281,27 @@ func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatem
 			File:    "Bla",
 			Line:    1,
 			Column:  1,
-			Message: fmt.Sprintf("CompileError: Cannot assing an unassigned variable '%s'", as.Identifier),
+			Message: fmt.Sprintf("CompileError: Cannot assign to an unassigned variable '%s'", as.Identifier),
 		}
 	}
 	as.Value.Accept(c)
-	// TODO may be wrong
-	c.Out.WriteString(fmt.Sprintf("    mov QWORD [rsp + %d], rax\n", (c.StackSize-variable.StackLocation-1)*8))
-
+	c.pop("rax")
+	c.Out.WriteString(fmt.Sprintf("    mov QWORD [rbp - %d], rax\n", (variable.StackLocation)*8))
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitProgram(p *parser.Program) error {
 	c.Out.WriteString("global _start\n")
 	c.Out.WriteString("_start:\n")
+	c.Out.WriteString("    push rbp\n")     // Save current base pointer
+	c.Out.WriteString("    mov rbp, rsp\n") // Set new base pointer to current stack pointer
 	for _, stmt := range p.Instructions {
 		if err := stmt.Accept(c); err != nil {
 			return err
 		}
 	}
+	c.Out.WriteString("    mov rsp, rbp\n")
+	c.Out.WriteString("    pop rbp\n")
 	c.Out.WriteString("    mov rax, 60\n")
 	c.Out.WriteString("    mov rdi, 0\n")
 	c.Out.WriteString("    syscall\n")
