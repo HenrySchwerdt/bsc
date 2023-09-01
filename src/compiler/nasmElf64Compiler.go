@@ -285,7 +285,6 @@ func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 	if err := ws.Body.Accept(c); err != nil {
 		return err
 	}
-	fmt.Println(tmpStackCount, c.StackSize)
 	for ; tmpStackCount < c.StackSize; c.StackSize-- {
 		c.pop("rax")
 	}
