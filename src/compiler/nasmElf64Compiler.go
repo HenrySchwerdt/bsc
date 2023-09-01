@@ -143,8 +143,8 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 	case "<=":
 		be.Left.Accept(c)
 		be.Right.Accept(c)
-		c.pop("rax")
 		c.pop("rbx")
+		c.pop("rax")
 		c.Out.WriteString("    cmp rax, rbx\n")
 		c.Out.WriteString("    setle al\n")
 		c.Out.WriteString("    movzx rax, al\n")

@@ -232,7 +232,7 @@ func TestBsPrograms(t *testing.T) {
 		}
 		os.RemoveAll(fileName)
 	})
-	t.Run("Should compile and exit with exitcode idk", func(t *testing.T) {
+	t.Run("Should compile and exit with exitcode 66", func(t *testing.T) {
 		// given
 		fileName := "t8_sum_to_50"
 		file, _ := os.Open("./examples/" + fileName + ".bs")
@@ -255,8 +255,8 @@ func TestBsPrograms(t *testing.T) {
 		if err := cmd.Run(); err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {
 				fmt.Println(exitError.ExitCode())
-				if exitError.ExitCode() != 1 {
-					t.Fatalf("Expected exit code 1, but got: %d", exitError.ExitCode())
+				if exitError.ExitCode() != 66 {
+					t.Fatalf("Expected exit code 66, but got: %d", exitError.ExitCode())
 				}
 			} else {
 				t.Fatalf("Could not run the program: %s", err)
