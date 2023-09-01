@@ -292,6 +292,37 @@ func (p *Parser) parseWhileStatement() (Node, error) {
 	}, nil
 }
 
+func (p *Parser) parseIfStatement() (Node, error) {
+	if err := p.match(lexer.TK_LEFT_PAREN, "("); err != nil {
+		return nil, err
+	}
+	test, err := p.parseComp()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.match(lexer.TK_RIGHT_PAREN, ")"); err != nil {
+		return nil, err
+	}
+	p.advance()
+	consequent, err := p.parseStatement()
+	var alternate Node
+	if p.current.Type == lexer.TK_ELSE {
+		p.advance()
+		alternate, err = p.parseStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &IfStatment{
+		Test:       test,
+		Consequent: consequent,
+		Alternate:  alternate,
+	}, nil
+}
+
 func (p *Parser) parseStatement() (Node, error) {
 	switch p.current.Type {
 	case lexer.TK_EXIT:
@@ -304,6 +335,8 @@ func (p *Parser) parseStatement() (Node, error) {
 		return p.parseBlockStatement()
 	case lexer.TK_WHILE:
 		return p.parseWhileStatement()
+	case lexer.TK_IF:
+		return p.parseIfStatement()
 	case lexer.TK_IDENTIFIER:
 		return p.parseAssignmentStatement()
 	default:

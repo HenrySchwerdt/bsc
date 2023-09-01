@@ -22,6 +22,7 @@ type NASMElf64Compiler struct {
 	Variables      map[string]*variable
 	VariableScopes []map[string]*variable
 	LoopCount      int
+	ConditionCount int
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
@@ -33,6 +34,7 @@ func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 		Variables:      make(map[string]*variable),
 		VariableScopes: []map[string]*variable{make(map[string]*variable)},
 		LoopCount:      0,
+		ConditionCount: 0,
 	}
 }
 
@@ -240,6 +242,25 @@ func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitIfStatment(is *parser.IfStatment) error {
+	c.ConditionCount += 1
+	if err := is.Test.Accept(c); err != nil {
+		return err
+	}
+	tmpCondCount := c.ConditionCount
+	tmpStackCount := c.StackSize
+	c.pop("rax")
+	c.Out.WriteString("    test rax, rax\n")
+	c.Out.WriteString(fmt.Sprintf("    jz .CE%d\n", tmpCondCount))
+	is.Consequent.Accept(c)
+	c.Out.WriteString(fmt.Sprintf("    jmp .CF%d\n", tmpCondCount))
+	c.Out.WriteString(fmt.Sprintf(".CE%d:\n", tmpCondCount))
+	if is.Alternate != nil {
+		is.Alternate.Accept(c)
+	}
+	c.Out.WriteString(fmt.Sprintf(".CF%d:\n", tmpCondCount))
+	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+		c.pop("rax")
+	}
 	return nil
 }
 

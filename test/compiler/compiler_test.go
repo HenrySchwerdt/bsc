@@ -296,4 +296,36 @@ func TestBsPrograms(t *testing.T) {
 		}
 		os.RemoveAll(fileName)
 	})
+	t.Run("Should compile and exit with exitcode 100", func(t *testing.T) {
+		// given
+		fileName := "t10_if"
+		file, _ := os.Open("./examples/" + fileName + ".bs")
+		defer file.Close()
+		tokenizer := lexer.NewTokenizer(file)
+		parser := parser.NewParser(tokenizer)
+		ast, err := parser.Parse()
+		if err != nil {
+			fmt.Println(err)
+		}
+		compiler := compiler.NewNASMElf64Compiler(ast)
+
+		// when
+		err = compiler.Compile(fileName, "out")
+		if err != nil {
+			t.Fatalf("Compilation error: %s", err)
+		}
+		// then
+		cmd := exec.Command("./" + fileName + "/out")
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				fmt.Println(exitError.ExitCode())
+				if exitError.ExitCode() != 100 {
+					t.Fatalf("Expected exit code 100, but got: %d", exitError.ExitCode())
+				}
+			} else {
+				t.Fatalf("Could not run the program: %s", err)
+			}
+		}
+		os.RemoveAll(fileName)
+	})
 }
