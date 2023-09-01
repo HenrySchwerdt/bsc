@@ -238,19 +238,20 @@ func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error
 }
 
 func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
-	c.Out.WriteString(fmt.Sprintf(".L%d:\n", c.LoopCount))
+	c.LoopCount += 1
+	tmpCount := c.LoopCount
+	c.Out.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
 	if err := ws.Test.Accept(c); err != nil {
 		return err
 	}
 	c.Out.WriteString("    test rax, rax\n")
-	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", c.LoopCount))
+	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
 
 	if err := ws.Body.Accept(c); err != nil {
 		return err
 	}
-	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", c.LoopCount))
-	c.Out.WriteString(fmt.Sprintf(".E%d:\n", c.LoopCount))
-	c.LoopCount += 1
+	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
+	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
 	return nil
 }
 
