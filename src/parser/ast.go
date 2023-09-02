@@ -41,6 +41,15 @@ func (ue *UnaryExpression) Accept(v Visitor) error {
 	return v.VisitUnaryExpression(ue)
 }
 
+type Params struct {
+	BaseNode
+	Args []string
+}
+
+func (pa *Params) Accept(v Visitor) error {
+	return v.VisitParams(pa)
+}
+
 type BinaryExpression struct {
 	BaseNode
 	Left     Node   `json:"left"`
@@ -219,5 +228,6 @@ type Visitor interface {
 	VisitBlockStatement(bs *BlockStatement) error
 	VisitExitStatment(es *ExitStatment) error
 	VisitAssignmentStatement(as *AssignmentStatement) error
+	VisitParams(pa *Params) error
 	VisitProgram(p *Program) error
 }

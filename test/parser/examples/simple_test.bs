@@ -1,6 +1,12 @@
-var x = 1;
-if (x == 1) {
-    exit(2);
-} else {
-    exit(1);
+var x = 0;
+var sum = 0;
+while (x <= 5) {
+    var xI = 0;
+    while(xI <= 5) {
+        xI = xI + 1;
+        sum = sum + xI;
+    }
+    x = x + 1;
+    sum = sum + x;
 }
+exit(sum);

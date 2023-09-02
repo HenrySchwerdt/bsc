@@ -348,6 +348,10 @@ func (c *NASMElf64Compiler) VisitProgram(p *parser.Program) error {
 	return nil
 }
 
+func (c *NASMElf64Compiler) VisitParams(pa *parser.Params) error {
+	return nil
+}
+
 func (c *NASMElf64Compiler) Compile(outDir, outFile string) error {
 	if err := (c.Ast).Accept(c); err != nil {
 		return err
