@@ -70,7 +70,6 @@ jobs:
           git push origin ${{ steps.get_version.outputs.version }}
 
       - name: Create Release and Upload Executable
-        if: steps.check_tag.outputs.exists == 'false'
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
