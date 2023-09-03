@@ -44,6 +44,11 @@ jobs:
       run: go mod download
     - name: Build
       run: go build -o bsc ./src/main.go
+    - name: Upload Executable as Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: bsc
+        path: ./bsc
 
   publish:
     name: Publish Executable as Release
@@ -57,7 +62,11 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18  
-
+      - name: Download Executable from Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: bsc
+          path: ./
       - name: Determine version
         id: get_version
         run: echo "::set-output name=version::$(go run ./src/main.go versiononly)"
