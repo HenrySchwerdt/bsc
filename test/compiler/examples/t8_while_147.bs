@@ -3,10 +3,10 @@ var sum = 0;
 while (x <= 5) {
     var xI = 0;
     while(xI <= 5) {
-        xI = xI + 1;
-        sum = sum + xI;
+        xI += 1;
+        sum += xI;
     }
-    x = x + 1;
-    sum = sum + x;
+    x += 1;
+    sum += x;
 }
 exit(sum);

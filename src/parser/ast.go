@@ -191,6 +191,14 @@ func (es *ExitStatment) Accept(v Visitor) error {
 	return v.VisitExitStatment(es)
 }
 
+type BreakStatment struct {
+	BaseNode
+}
+
+func (bs *BreakStatment) Accept(v Visitor) error {
+	return v.VisitBreakStatment(bs)
+}
+
 type BlockStatement struct {
 	BaseNode
 	Instructions []Node `json:"instructions"`
@@ -227,6 +235,7 @@ type Visitor interface {
 	VisitWhileStatment(ws *WhileStatment) error
 	VisitBlockStatement(bs *BlockStatement) error
 	VisitExitStatment(es *ExitStatment) error
+	VisitBreakStatment(bs *BreakStatment) error
 	VisitAssignmentStatement(as *AssignmentStatement) error
 	VisitParams(pa *Params) error
 	VisitProgram(p *Program) error

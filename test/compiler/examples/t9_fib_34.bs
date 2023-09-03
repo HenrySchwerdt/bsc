@@ -6,6 +6,6 @@ while(it < nFib) {
     var sum = prev + next;
     prev = next;
     next = sum;
-    it = it + 1;
+    it += 1;
 }
 exit(prev);

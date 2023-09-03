@@ -53,6 +53,8 @@ func (tk *Tokenizer) GetToken() Token {
 				return Token{Type: TK_RETURN, Position: tk.s.Position, Literal: literal}
 			case "exit":
 				return Token{Type: TK_EXIT, Position: tk.s.Position, Literal: literal}
+			case "break":
+				return Token{Type: TK_BREAK, Position: tk.s.Position, Literal: literal}
 			case "super":
 				return Token{Type: TK_SUPER, Position: tk.s.Position, Literal: literal}
 			case "this":

@@ -1,11 +1,6 @@
-var prev = 0;
-var next = 1;
-var nFib = 10;
-var it = 1;
-while(it < nFib) {
-    var sum = prev + next;
-    prev = next;
-    next = sum;
-    it = it + 1;
+var sum = 0;
+
+for (var i = 0; i<=10; i = i + 1) {
+    sum = sum + 1;
 }
-console.log(prev);
+console.log(sum);

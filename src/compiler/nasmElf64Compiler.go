@@ -23,6 +23,7 @@ type NASMElf64Compiler struct {
 	VariableScopes []map[string]*variable
 	LoopCount      int
 	ConditionCount int
+	InLoop         bool
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
@@ -35,6 +36,7 @@ func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 		VariableScopes: []map[string]*variable{make(map[string]*variable)},
 		LoopCount:      0,
 		ConditionCount: 0,
+		InLoop:         false,
 	}
 }
 
@@ -237,10 +239,6 @@ func (c *NASMElf64Compiler) VisitFunctionDeclaration(fd *parser.FunctionDeclarat
 	return nil
 }
 
-func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
-	return nil
-}
-
 func (c *NASMElf64Compiler) VisitIfStatment(is *parser.IfStatment) error {
 	c.ConditionCount += 1
 	if err := is.Test.Accept(c); err != nil {
@@ -268,6 +266,50 @@ func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error
 	return nil
 }
 
+func (c *NASMElf64Compiler) VisitBreakStatment(bs *parser.BreakStatment) error {
+	if !c.InLoop {
+		return &exeptions.CompilerError{
+			File:    "bla",
+			Line:    1,
+			Column:  1,
+			Message: "Cannot use 'break' statement outside of a loop.",
+		}
+	}
+	c.Out.WriteString(fmt.Sprintf("    jmp .E%d\n", c.LoopCount))
+	return nil
+}
+
+func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
+
+	c.LoopCount += 1
+	tmpCount := c.LoopCount
+	tmpStackCount := c.StackSize
+	if err := fs.Init.Accept(c); err != nil {
+		return err
+	}
+	c.Out.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
+	if err := fs.Test.Accept(c); err != nil {
+		return err
+	}
+	c.pop("rax")
+	c.Out.WriteString("    test rax, rax\n")
+	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
+	c.InLoop = true
+	if err := fs.Body.Accept(c); err != nil {
+		return err
+	}
+	c.InLoop = false
+	if err := fs.Update.Accept(c); err != nil {
+		return err
+	}
+	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+		c.pop("rax")
+	}
+	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
+	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
+	return nil
+}
+
 func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 	c.LoopCount += 1
 	tmpCount := c.LoopCount
@@ -281,10 +323,11 @@ func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 	c.pop("rax")
 	c.Out.WriteString("    test rax, rax\n")
 	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
-
+	c.InLoop = true
 	if err := ws.Body.Accept(c); err != nil {
 		return err
 	}
+	c.InLoop = false
 	for ; tmpStackCount < c.StackSize; c.StackSize-- {
 		c.pop("rax")
 	}

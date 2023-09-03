@@ -208,6 +208,16 @@ func (p *Parser) parseExitStatement() (Node, error) {
 
 }
 
+func (p *Parser) parseBreakStatement() (Node, error) {
+	p.advance() // Skips break
+	_, err := p.match(lexer.TK_SEMICOLON, ";")
+	if err != nil {
+		return nil, err
+	}
+	return &BreakStatment{}, nil
+
+}
+
 func (p *Parser) parseDeleclarationStatement() (Node, error) {
 	// TODO: No const implement yet
 	p.advance() // skips "var/val"
@@ -237,17 +247,92 @@ func (p *Parser) parseDeleclarationStatement() (Node, error) {
 func (p *Parser) parseAssignmentStatement() (Node, error) {
 	ident := p.current.Literal
 	p.advance()
-	if _, err := p.match(lexer.TK_EQUAL, "="); err != nil {
-		return nil, err
-	}
-	node, parsingError := p.parseExpression()
-	if parsingError != nil {
-		return nil, parsingError
+	var value Node
+	var err error
+	switch p.current.Literal {
+	case "=":
+		p.advance()
+		value, err = p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+	case "+=":
+		p.advance()
+		tmp, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = &BinaryExpression{
+			Left: &VariableLookup{
+				Id: ident,
+			},
+			Right:    tmp,
+			Operator: "+",
+		}
+	case "-=":
+		p.advance()
+		tmp, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = &BinaryExpression{
+			Left: &VariableLookup{
+				Id: ident,
+			},
+			Right:    tmp,
+			Operator: "-",
+		}
+	case "&=":
+		p.advance()
+		tmp, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = &BinaryExpression{
+			Left: &VariableLookup{
+				Id: ident,
+			},
+			Right:    tmp,
+			Operator: "&",
+		}
+	case "|=":
+		p.advance()
+		tmp, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = &BinaryExpression{
+			Left: &VariableLookup{
+				Id: ident,
+			},
+			Right:    tmp,
+			Operator: "|",
+		}
+	case "*=":
+		p.advance()
+		tmp, err := p.parseExpression()
+		if err != nil {
+			return nil, err
+		}
+		value = &BinaryExpression{
+			Left: &VariableLookup{
+				Id: ident,
+			},
+			Right:    tmp,
+			Operator: "*",
+		}
+	default:
+		return nil, &exeptions.CompilerError{
+			File:    "bal",
+			Line:    1,
+			Column:  1,
+			Message: "Encountenterd unknow assignment operator.",
+		}
 	}
 
 	assignment := &AssignmentStatement{
 		Identifier: ident,
-		Value:      node,
+		Value:      value,
 	}
 	return assignment, nil
 }
@@ -389,6 +474,8 @@ func (p *Parser) parseStatement() (Node, error) {
 		}
 
 		return stmt, err
+	case lexer.TK_BREAK:
+		return p.parseBreakStatement()
 	case lexer.TK_LEFT_BRACE:
 		return p.parseBlockStatement()
 	case lexer.TK_WHILE:

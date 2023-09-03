@@ -1,12 +1,8 @@
-var x = 0;
-var sum = 0;
-while (x <= 5) {
-    var xI = 0;
-    while(xI <= 5) {
-        xI = xI + 1;
-        sum = sum + xI;
-    }
-    x = x + 1;
-    sum = sum + x;
+var x = 10;
+var hundret = 0;
+if (x * 10 == 100) {
+    hundret = x * 10;
+} else {
+    exit(30);
 }
-exit(sum);
+exit(hundret);
