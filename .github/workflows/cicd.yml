@@ -65,8 +65,8 @@ jobs:
 
       - name: Create Git tag
         run: |
-          git tag ${{ steps.get_version.outputs.version }}
-          git push origin ${{ steps.get_version.outputs.version }}
+          git tag "${{ steps.get_version.outputs.version }}"
+          git push origin "${{ steps.get_version.outputs.version }}"
 
       - name: Create Release and Upload Executable
         uses: marvinpinto/action-automatic-releases@latest
