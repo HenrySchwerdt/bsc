@@ -61,18 +61,8 @@ jobs:
         id: get_version
         run: echo "::set-output name=version::$(go run ./src/main.go -version)"
 
-      - name: Check if tag already exists
-        id: check_tag
-        run: |
-          EXISTS=$(git ls-remote --tags origin | grep ${{ steps.get_version.outputs.version }})
-          if [[ -z "$EXISTS" ]]; then
-            echo "::set-output name=exists::false"
-          else
-            echo "::set-output name=exists::true"
-          fi
 
       - name: Create Git tag
-        if: steps.check_tag.outputs.exists == 'false'
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
