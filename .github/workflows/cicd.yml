@@ -1,0 +1,79 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.18 
+    - name: Cache Go Modules
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Test
+      run: go test ./test/...
+
+  build:
+    name: Build Executable
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.18  
+    - name: Build
+      run: go build -o bsc ./src/main.go
+
+  publish:
+    name: Publish Executable as Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.18  
+    - name: Determine version
+      id: get_version
+      run: echo "::set-output name=version::$(go run ./src/main.go -version)"
+    - name: Check if tag already exists
+      id: check_tag
+      run: |
+        EXISTS=$(git ls-remote --tags origin | grep ${{ steps.get_version.outputs.version }})
+        if [[ -z "$EXISTS" ]]; then
+          echo "::set-output name=exists::false"
+        else
+          echo "::set-output name=exists::true"
+        fi
+    - name: Create Release and Upload Executable
+      if: steps.check_tag.outputs.exists == 'false'
+      uses: gh-actions/gh-release@v1
+      with:
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: Release ${{ steps.get_version.outputs.version }}
+        body: Description of the release
+        draft: false
+        prerelease: false
+        asset_path: ./bsc
+        asset_name: bsc
+        asset_content_type: application/octet-stream
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
