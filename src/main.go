@@ -18,6 +18,7 @@ func main() {
 		Name:        "BSC",
 		Description: "BSC is the compiler and package manager for BlockScript. For documentation and exmaples on how to use the language visit: https://block-script.com/docs",
 		Version:     fmt.Sprintf("%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH),
+		Action:      commands.DefaultAction,
 		Commands: []*cli.Command{
 			{
 				Name:        "init",

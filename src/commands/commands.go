@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/urfave/cli/v2"
 )
@@ -54,18 +55,29 @@ func InitProject(ctx *cli.Context) error {
 		ArtifactName: "out",
 		Entry:        "src/main.bs",
 		Deps:         make([]string, 0),
-		Commands: map[string]interface{}{
+		Commands: map[string]string{
 			"build": "bsc compile src/main.bs",
 			"run":   "bsc compile src/main.bs && ./build/out",
 		},
 	}
-
-	data, err := json.MarshalIndent(defaultSettings, "", "    ")
+	err = os.Mkdir(projectName+"/src", 0755)
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "    ")
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(defaultSettings)
 	if err != nil {
 		return err
 	}
 
-	_, writeErr := file.Write(data)
+	file, err = os.Create(projectName + "/src/main.bs")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, writeErr := file.WriteString("exit(0);")
 	return writeErr
 }
 
@@ -98,4 +110,25 @@ func Compile(ctx *cli.Context) error {
 	}
 	compiler := compiler.NewNASMElf64Compiler(ast)
 	return compiler.Compile(buildDirName, artifactName)
+}
+
+func DefaultAction(ctx *cli.Context) error {
+	if ctx.Args().Present() {
+		command := ctx.Args().First()
+		settings, err := LoadProjectSettings()
+		if err != nil {
+			return errors.New("The provided command cannot be found in the project.json")
+		}
+		toExecute, exists := settings.Commands[command]
+		if !exists {
+			return errors.New("The provided command cannot be found in the project.json")
+		}
+		err = exec.Command("sh", "-c", toExecute).Run()
+		if err != nil {
+			return errors.New(err.Error())
+		}
+	} else {
+		return errors.New("No command provided.")
+	}
+	return nil
 }
