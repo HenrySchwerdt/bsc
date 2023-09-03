@@ -18,7 +18,11 @@ func main() {
 		Name:        "BSC",
 		Description: "BSC is the compiler and package manager for BlockScript. For documentation and exmaples on how to use the language visit: https://block-script.com/docs",
 		Version:     fmt.Sprintf("%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH),
-		Action:      commands.DefaultAction,
+		Authors: []*cli.Author{{
+			Name:  "H. Schwerdtner",
+			Email: "henry.schwerdtner@web.de",
+		}},
+		Action: commands.DefaultAction,
 		Commands: []*cli.Command{
 			{
 				Name:        "init",
@@ -33,6 +37,14 @@ func main() {
 				Usage:       "BSC compile [path]",
 				Description: "Compiles a project into the specified out folder.",
 				Action:      commands.Compile,
+			},
+			{
+				Name:    "versiononly",
+				Aliases: []string{"vo"},
+				Action: func(c *cli.Context) error {
+					fmt.Printf("bsc_v%d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+					return nil
+				},
 			},
 		},
 	}

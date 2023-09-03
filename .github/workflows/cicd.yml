@@ -60,7 +60,7 @@ jobs:
 
       - name: Determine version
         id: get_version
-        run: echo "::set-output name=version::$(go run ./src/main.go -version)"
+        run: echo "::set-output name=version::$(go run ./src/main.go versiononly)"
 
 
       - name: Create Git tag
