@@ -153,7 +153,7 @@ func (p *Parser) parseTerm() (Node, error) {
 		return nil, err
 	}
 	for {
-		if p.this().Type == lexer.TK_STAR || p.this().Type == lexer.TK_SLASH {
+		if p.this().Type == lexer.TK_STAR || p.this().Type == lexer.TK_SLASH || p.this().Type == lexer.TK_MODULO {
 			op := p.this().Literal
 			p.advance()
 			right, err := p.parseFactor()

@@ -102,6 +102,8 @@ func (tk *Tokenizer) GetToken() Token {
 			return Token{Type: TK_QUESTION_MARK, Position: tk.s.Position, Literal: tk.s.TokenText()}
 		case '~':
 			return Token{Type: TK_BIT_NOT, Position: tk.s.Position, Literal: tk.s.TokenText()}
+		case '%':
+			return Token{Type: TK_MODULO, Position: tk.s.Position, Literal: tk.s.TokenText()}
 		case '!':
 			if tk.Peek() == '=' {
 				tk.s.Next()

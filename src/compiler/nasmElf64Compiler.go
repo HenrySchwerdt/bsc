@@ -187,6 +187,15 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
+	case "%":
+		be.Left.Accept(c)
+		be.Right.Accept(c)
+		c.pop("rbx")
+		c.pop("rax")
+		c.WriteString("    xor rdx, rdx\n")
+		c.WriteString("    idiv rbx\n")
+		c.push("rdx")
+		return nil
 	default:
 		return &exeptions.CompilerError{
 			File:    be.Start.Position.Filename,
