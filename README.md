@@ -1,1 +1,3 @@
 # bsc
+
+[*] added errors
