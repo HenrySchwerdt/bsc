@@ -236,6 +236,32 @@ func (p *Parser) parseExitStatement() (Node, error) {
 	return exitStmt, nil
 
 }
+func (p *Parser) parseReturnStatement() (Node, error) {
+	start := p.this()
+	p.advance() // Skips return
+	if p.this().Type == lexer.TK_SEMICOLON {
+		return &ReturnStatment{
+			BaseNode: BaseNode{
+				Start: start,
+				End:   start,
+			},
+			Argument: nil,
+		}, nil
+	}
+	node, parsingError := p.parseExpression()
+	if parsingError != nil {
+		return nil, parsingError
+	}
+	end := p.this()
+
+	return &ReturnStatment{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
+		Argument: node,
+	}, nil
+}
 
 func (p *Parser) parseBreakStatement() (Node, error) {
 	start := p.this()
@@ -528,10 +554,79 @@ func (p *Parser) parseIfStatement() (Node, error) {
 	}, nil
 }
 
+func (p *Parser) parseParams() (Node, error) {
+	var args []string
+	for {
+		if p.this().Type == lexer.TK_RIGHT_PAREN {
+			break
+		}
+		ident, err := p.match(lexer.TK_IDENTIFIER, "identifier")
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, ident.Literal)
+		if p.this().Type == lexer.TK_COMMA {
+			p.advance()
+		}
+	}
+	return &Params{
+		Args: args,
+	}, nil
+}
+
+func (p *Parser) parseFunctionDeclaration() (Node, error) {
+	start := p.this()
+	p.advance()                                              // Skips fn
+	ident, err := p.match(lexer.TK_IDENTIFIER, "identifier") // Skips function name
+	if err != nil {
+		return nil, err
+	}
+	if _, err := p.match(lexer.TK_LEFT_PAREN, "("); err != nil {
+		return nil, err
+	}
+	var params Node
+	if p.this().Type != lexer.TK_RIGHT_PAREN {
+		params, err = p.parseParams()
+	}
+	if _, err := p.match(lexer.TK_RIGHT_PAREN, ")"); err != nil {
+		return nil, err
+	}
+	ret, err := p.match(lexer.TK_IDENTIFIER, "return type") // Skips return type
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlockStatement()
+	if err != nil {
+		return nil, err
+	}
+	end := p.this()
+	return &FunctionDeclaration{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
+		Function: &Function{
+			BaseNode: BaseNode{
+				Start: start,
+				End:   end,
+			},
+			Id:         ident.Literal,
+			Parameters: params,
+			ReturnType: ret.Literal,
+			Body:       body,
+		},
+	}, nil
+}
 func (p *Parser) parseStatement() (Node, error) {
 	switch p.this().Type {
 	case lexer.TK_EXIT:
 		stmt, err := p.parseExitStatement()
+		if _, err := p.match(lexer.TK_SEMICOLON, ";"); err != nil {
+			return nil, err
+		}
+		return stmt, err
+	case lexer.TK_RETURN:
+		stmt, err := p.parseReturnStatement()
 		if _, err := p.match(lexer.TK_SEMICOLON, ";"); err != nil {
 			return nil, err
 		}
@@ -566,8 +661,8 @@ func (p *Parser) parseStatement() (Node, error) {
 			return nil, err
 		}
 		return stmt, err
-	// case lexer.TK_FN:
-	// 	return p.parseFunction()
+	case lexer.TK_FN:
+		return p.parseFunctionDeclaration()
 	default:
 		return nil, &exeptions.CompilerError{
 			File:    p.next.Position.Filename,

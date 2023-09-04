@@ -112,8 +112,9 @@ func (vl *VariableLookup) Accept(v Visitor) error {
 
 type Function struct {
 	BaseNode
-	Id         Node   `json:"id"`
-	Parameters []Node `json:"params"`
+	Id         string `json:"id"`
+	Parameters Node   `json:"params"`
+	ReturnType string `json:"ret"`
 	Body       Node   `json:"body"`
 }
 
