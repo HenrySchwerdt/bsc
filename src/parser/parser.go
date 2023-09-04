@@ -49,11 +49,16 @@ func (p *Parser) match(tokenType lexer.TokenType, keyword string) (lexer.Token, 
 }
 
 func (p *Parser) parseLiteral() (Node, error) {
+	start := p.this()
 	tk := p.this()
 	switch tk.Type {
 	case lexer.TK_INTEGER:
 		val, _ := strconv.ParseInt(tk.Literal, 10, 64)
 		lit := &Literal{
+			BaseNode: BaseNode{
+				Start: start,
+				End:   start,
+			},
 			Value: val,
 		}
 		p.advance()
@@ -61,6 +66,10 @@ func (p *Parser) parseLiteral() (Node, error) {
 	case lexer.TK_FLOAT:
 		val, _ := strconv.ParseFloat(tk.Literal, 64)
 		lit := &Literal{
+			BaseNode: BaseNode{
+				Start: start,
+				End:   start,
+			},
 			Value: val,
 		}
 		p.advance()
@@ -76,7 +85,6 @@ func (p *Parser) parseLiteral() (Node, error) {
 }
 
 func (p *Parser) parseFactor() (Node, error) {
-
 	if p.this().Type == lexer.TK_LEFT_PAREN {
 		p.advance() // Skips '('
 		expr, exprErr := p.parseExpression()
@@ -108,7 +116,7 @@ func (p *Parser) parseFactor() (Node, error) {
 }
 
 func (p *Parser) parseTerm() (Node, error) {
-
+	start := p.this()
 	left, err := p.parseFactor()
 	if err != nil {
 		return nil, err
@@ -121,7 +129,12 @@ func (p *Parser) parseTerm() (Node, error) {
 			if err != nil {
 				return nil, err
 			}
+			end := p.this()
 			left = &BinaryExpression{
+				BaseNode: BaseNode{
+					Start: start,
+					End:   end,
+				},
 				Left:     left,
 				Right:    right,
 				Operator: op,
@@ -134,7 +147,7 @@ func (p *Parser) parseTerm() (Node, error) {
 }
 
 func (p *Parser) parseComp() (Node, error) {
-
+	start := p.this()
 	left, err := p.parseTerm()
 	if err != nil {
 		return nil, err
@@ -148,7 +161,12 @@ func (p *Parser) parseComp() (Node, error) {
 			if err != nil {
 				return nil, err
 			}
+			end := p.this()
 			left = &BinaryExpression{
+				BaseNode: BaseNode{
+					Start: start,
+					End:   end,
+				},
 				Left:     left,
 				Right:    right,
 				Operator: op,
@@ -161,6 +179,7 @@ func (p *Parser) parseComp() (Node, error) {
 }
 
 func (p *Parser) parseExpression() (Node, error) {
+	start := p.this()
 	left, err := p.parseComp()
 	if err != nil {
 		return nil, err
@@ -173,7 +192,12 @@ func (p *Parser) parseExpression() (Node, error) {
 			if err != nil {
 				return nil, err
 			}
+			end := p.this()
 			left = &BinaryExpression{
+				BaseNode: BaseNode{
+					Start: start,
+					End:   end,
+				},
 				Left:     left,
 				Right:    right,
 				Operator: op,
@@ -186,6 +210,7 @@ func (p *Parser) parseExpression() (Node, error) {
 }
 
 func (p *Parser) parseExitStatement() (Node, error) {
+	start := p.this()
 	p.advance() // Skips exit
 	_, err := p.match(lexer.TK_LEFT_PAREN, "(")
 	if err != nil {
@@ -200,8 +225,12 @@ func (p *Parser) parseExitStatement() (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	end := p.this()
 	exitStmt := &ExitStatment{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Argument: node,
 	}
 	return exitStmt, nil
@@ -209,18 +238,27 @@ func (p *Parser) parseExitStatement() (Node, error) {
 }
 
 func (p *Parser) parseBreakStatement() (Node, error) {
+	start := p.this()
 	p.advance() // Skips break
+	end := p.this()
 	_, err := p.match(lexer.TK_SEMICOLON, ";")
 	if err != nil {
 		return nil, err
 	}
-	return &BreakStatment{}, nil
+	return &BreakStatment{
+		BaseNode{
+			Start: start,
+			End:   end,
+		},
+	}, nil
 
 }
 
 func (p *Parser) parseDeleclarationStatement() (Node, error) {
+	start := p.this()
 	// TODO: No const implement yet
 	p.advance() // skips "var/val"
+	startDec := p.this()
 	identTk, err := p.match(lexer.TK_IDENTIFIER, "identifier")
 	if err != nil {
 		return nil, err
@@ -233,18 +271,29 @@ func (p *Parser) parseDeleclarationStatement() (Node, error) {
 	if parsingError != nil {
 		return nil, parsingError
 	}
+	end := p.this()
 	dec := &VariableDeclaration{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Kind: "var",
 		Declaration: &VariableDeclarator{
+			BaseNode: BaseNode{
+				Start: startDec,
+				End:   end,
+			},
 			Id:   ident,
 			Init: node,
 		},
 	}
+
 	return dec, nil
 
 }
 
 func (p *Parser) parseAssignmentStatement() (Node, error) {
+	start := p.this()
 	ident := p.current.Literal
 	p.advance()
 	var value Node
@@ -323,14 +372,18 @@ func (p *Parser) parseAssignmentStatement() (Node, error) {
 		}
 	default:
 		return nil, &exeptions.CompilerError{
-			File:    "bal",
-			Line:    1,
-			Column:  1,
-			Message: "Encountenterd unknow assignment operator.",
+			File:    p.this().Position.Filename,
+			Line:    p.this().Position.Line,
+			Column:  p.this().Position.Column,
+			Message: fmt.Sprintf("Encountenterd unknow assignment operator '%s'.", p.this().Literal),
 		}
 	}
-
+	end := p.this()
 	assignment := &AssignmentStatement{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Identifier: ident,
 		Value:      value,
 	}
@@ -338,6 +391,7 @@ func (p *Parser) parseAssignmentStatement() (Node, error) {
 }
 
 func (p *Parser) parseBlockStatement() (Node, error) {
+	start := p.this()
 	stmts := make([]Node, 0)
 	p.advance()
 	for {
@@ -350,13 +404,19 @@ func (p *Parser) parseBlockStatement() (Node, error) {
 		}
 		stmts = append(stmts, stmt)
 	}
+	end := p.this()
 	p.advance()
 	return &BlockStatement{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Instructions: stmts,
 	}, nil
 }
 
 func (p *Parser) parseWhileStatement() (Node, error) {
+	start := p.this()
 	p.advance() // Skips 'while'
 	if _, err := p.match(lexer.TK_LEFT_PAREN, "("); err != nil {
 		return nil, err
@@ -369,13 +429,19 @@ func (p *Parser) parseWhileStatement() (Node, error) {
 		return nil, err
 	}
 	body, err := p.parseStatement()
+	end := p.this()
 	return &WhileStatment{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Test: test,
 		Body: body,
 	}, nil
 }
 
 func (p *Parser) parseForStatement() (Node, error) {
+	start := p.this()
 	p.advance()
 	_, err := p.match(lexer.TK_LEFT_PAREN, "(")
 	if err != nil {
@@ -411,8 +477,13 @@ func (p *Parser) parseForStatement() (Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	end := p.this()
 
 	return &ForStatment{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Init:   init,
 		Test:   test,
 		Update: update,
@@ -421,6 +492,7 @@ func (p *Parser) parseForStatement() (Node, error) {
 }
 
 func (p *Parser) parseIfStatement() (Node, error) {
+	start := p.this()
 	p.advance()                                                  // Skips if
 	if _, err := p.match(lexer.TK_LEFT_PAREN, "("); err != nil { // Matches '('
 		return nil, err
@@ -444,7 +516,12 @@ func (p *Parser) parseIfStatement() (Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	var end = p.this()
 	return &IfStatment{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Test:       test,
 		Consequent: consequent,
 		Alternate:  alternate,
@@ -458,7 +535,6 @@ func (p *Parser) parseStatement() (Node, error) {
 		if _, err := p.match(lexer.TK_SEMICOLON, ";"); err != nil {
 			return nil, err
 		}
-
 		return stmt, err
 	case lexer.TK_VAL:
 		stmt, err := p.parseDeleclarationStatement()
@@ -503,6 +579,7 @@ func (p *Parser) parseStatement() (Node, error) {
 }
 
 func (p *Parser) parseProgram() (Node, error) {
+	start := p.current
 	nodes := make([]Node, 0)
 
 	for {
@@ -515,7 +592,12 @@ func (p *Parser) parseProgram() (Node, error) {
 		}
 		nodes = append(nodes, node)
 	}
+	end := p.current
 	prog := &Program{
+		BaseNode: BaseNode{
+			Start: start,
+			End:   end,
+		},
 		Instructions: nodes,
 	}
 	return prog, nil

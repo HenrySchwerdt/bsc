@@ -176,9 +176,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		return nil
 	default:
 		return &exeptions.CompilerError{
-			File:    "Bla",
-			Line:    1,
-			Column:  1,
+			File:    be.Start.Position.Filename,
+			Line:    be.Start.Position.Line,
+			Column:  be.Start.Position.Column,
 			Message: fmt.Sprintf("CompileError: Unkown BinaryExpression Operator: '%s'", be.Operator),
 		}
 	}
@@ -197,9 +197,9 @@ func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarato
 	currentScope := c.VariableScopes[len(c.VariableScopes)-1]
 	if _, exists := currentScope[vd.Id]; exists {
 		return &exeptions.CompilerError{
-			File:    "Bla",
-			Line:    1,
-			Column:  1,
+			File:    vd.Start.Position.Filename,
+			Line:    vd.Start.Position.Line,
+			Column:  vd.Start.Position.Column,
 			Message: fmt.Sprintf("CompileError: Cannot declare a variable that already exists: '%s'", vd.Id),
 		}
 	}
@@ -220,9 +220,9 @@ func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error
 	variable, exists := c.findVariable(vl.Id)
 	if !exists {
 		return &exeptions.CompilerError{
-			File:    "Bla",
-			Line:    1,
-			Column:  1,
+			File:    vl.Start.Position.Filename,
+			Line:    vl.Start.Position.Line,
+			Column:  vl.Start.Position.Column,
 			Message: fmt.Sprintf("CompileError: Undeclared Identifier '%s'", vl.Id),
 		}
 	}
@@ -269,9 +269,9 @@ func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error
 func (c *NASMElf64Compiler) VisitBreakStatment(bs *parser.BreakStatment) error {
 	if !c.InLoop {
 		return &exeptions.CompilerError{
-			File:    "bla",
-			Line:    1,
-			Column:  1,
+			File:    bs.Start.Position.Filename,
+			Line:    bs.Start.Position.Line,
+			Column:  bs.Start.Position.Column,
 			Message: "Cannot use 'break' statement outside of a loop.",
 		}
 	}
@@ -361,9 +361,9 @@ func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatem
 	variable, exists := c.findVariable(as.Identifier)
 	if !exists {
 		return &exeptions.CompilerError{
-			File:    "Bla",
-			Line:    1,
-			Column:  1,
+			File:    as.Start.Position.Filename,
+			Line:    as.Start.Position.Line,
+			Column:  as.Start.Position.Column,
 			Message: fmt.Sprintf("CompileError: Cannot assign to an unassigned variable '%s'", as.Identifier),
 		}
 	}
