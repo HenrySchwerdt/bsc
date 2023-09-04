@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"text/scanner"
+	"bsc/src/lexer"
 )
 
 type Node interface {
@@ -9,8 +9,8 @@ type Node interface {
 }
 
 type BaseNode struct {
-	Start scanner.Position
-	End   scanner.Position
+	Start lexer.Token
+	End   lexer.Token
 }
 
 type Literal struct {
