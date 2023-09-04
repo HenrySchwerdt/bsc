@@ -302,11 +302,11 @@ func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
 	if err := fs.Update.Accept(c); err != nil {
 		return err
 	}
+	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
+	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
 	for ; tmpStackCount < c.StackSize; c.StackSize-- {
 		c.pop("rax")
 	}
-	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
-	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
 	return nil
 }
 
