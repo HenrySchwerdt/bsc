@@ -73,11 +73,15 @@ jobs:
 
 
       - name: Create Git tag
+        id: create_tag
         run: |
           git tag "${{ steps.get_version.outputs.version }}"
           git push origin "${{ steps.get_version.outputs.version }}"
+          echo "::set-output name=tagged::true"
+        continue-on-error: true
 
       - name: Create Release and Upload Executable
+        if: steps.create_tag.outputs.tagged == 'true'
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
