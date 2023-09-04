@@ -101,11 +101,42 @@ func (p *Parser) parseFactor() (Node, error) {
 		return p.parseLiteral()
 	}
 	if p.this().Type == lexer.TK_IDENTIFIER {
-		lookUp := &VariableLookup{
-			Id: p.this().Literal,
+		if p.next.Type == lexer.TK_LEFT_PAREN {
+			start := p.this()
+			ident := p.this().Literal
+			p.advance()
+			p.advance()
+			var params []Node
+			for {
+				if p.this().Type == lexer.TK_RIGHT_PAREN {
+					break
+				}
+				expr, err := p.parseExpression()
+				if err != nil {
+					return nil, err
+				}
+				params = append(params, expr)
+				if p.this().Type == lexer.TK_COMMA {
+					p.advance()
+				}
+			}
+			end := p.this()
+			p.advance()
+			return &CallExpression{
+				BaseNode: BaseNode{
+					Start: start,
+					End:   end,
+				},
+				Identifier: ident,
+				Args:       params,
+			}, nil
+		} else {
+			lookUp := &VariableLookup{
+				Id: p.this().Literal,
+			}
+			p.advance() // Goes to next token
+			return lookUp, nil
 		}
-		p.advance() // Goes to next token
-		return lookUp, nil
 	}
 	return nil, &exeptions.CompilerError{
 		File:    p.next.Position.Filename,

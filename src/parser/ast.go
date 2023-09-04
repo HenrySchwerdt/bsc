@@ -72,6 +72,16 @@ func (ce *ConditionalExpression) Accept(v Visitor) error {
 	return v.VisitConditionalExpression(ce)
 }
 
+type CallExpression struct {
+	BaseNode
+	Identifier string
+	Args       []Node
+}
+
+func (ce *CallExpression) Accept(v Visitor) error {
+	return v.VisitCallExpression(ce)
+}
+
 type ExpressionStatement struct {
 	BaseNode
 	Expression Node `json:"expression"`
@@ -238,6 +248,7 @@ type Visitor interface {
 	VisitExitStatment(es *ExitStatment) error
 	VisitBreakStatment(bs *BreakStatment) error
 	VisitAssignmentStatement(as *AssignmentStatement) error
+	VisitCallExpression(ce *CallExpression) error
 	VisitParams(pa *Params) error
 	VisitProgram(p *Program) error
 }

@@ -14,52 +14,65 @@ import (
 type variable struct {
 	StackLocation int
 }
+type function struct {
+	Params []string
+	Ret    string
+}
 
 type NASMElf64Compiler struct {
 	Ast            parser.Node
+	StackManager   *StackManager
 	Out            strings.Builder
-	StackSize      int
-	Variables      map[string]*variable
-	VariableScopes []map[string]*variable
+	OutFn          strings.Builder
 	LoopCount      int
 	ConditionCount int
 	InLoop         bool
+	InFunction     bool
 }
 
 func NewNASMElf64Compiler(ast parser.Node) *NASMElf64Compiler {
 	var builder strings.Builder
+	var builderfn strings.Builder
 	return &NASMElf64Compiler{
 		Ast:            ast,
+		StackManager:   NewStackManager(),
 		Out:            builder,
-		StackSize:      0,
-		Variables:      make(map[string]*variable),
-		VariableScopes: []map[string]*variable{make(map[string]*variable)},
+		OutFn:          builderfn,
 		LoopCount:      0,
 		ConditionCount: 0,
 		InLoop:         false,
+		InFunction:     false,
 	}
 }
 
-func (c *NASMElf64Compiler) findVariable(id string) (*variable, bool) {
-	for i := len(c.VariableScopes) - 1; i >= 0; i-- {
-		if variable, exists := c.VariableScopes[i][id]; exists {
-			return variable, true
-		}
+func (c *NASMElf64Compiler) WriteString(str string) {
+	if c.InFunction {
+		c.OutFn.WriteString(str)
+	} else {
+		c.Out.WriteString(str)
 	}
-	return nil, false
 }
+
+func (c *NASMElf64Compiler) GetOut() *strings.Builder {
+	if c.InFunction {
+		return &c.OutFn
+	} else {
+		return &c.Out
+	}
+}
+
 func (c *NASMElf64Compiler) push(reg string) {
-	c.Out.WriteString(fmt.Sprintf("    push %s\n", reg))
-	c.StackSize++
+	c.WriteString(fmt.Sprintf("    push %s\n", reg))
+	c.StackManager.Push(8)
 }
 
 func (c *NASMElf64Compiler) pop(reg string) {
-	c.Out.WriteString(fmt.Sprintf("    pop %s\n", reg))
-	c.StackSize--
+	c.WriteString(fmt.Sprintf("    pop %s\n", reg))
+	c.StackManager.Pop(8)
 }
 
 func (c *NASMElf64Compiler) VisitLiteral(l *parser.Literal) error {
-	c.Out.WriteString(fmt.Sprintf("    mov rax, %d\n", l.Value.(int64)))
+	c.WriteString(fmt.Sprintf("    mov rax, %d\n", l.Value.(int64)))
 	c.push("rax")
 	return nil
 }
@@ -79,7 +92,7 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    add rax, rbx\n")
+		c.WriteString("    add rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "-":
@@ -87,7 +100,7 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    sub rax, rbx\n")
+		c.WriteString("    sub rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "&":
@@ -95,7 +108,7 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    and rax, rbx\n")
+		c.WriteString("    and rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "|":
@@ -103,7 +116,7 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    or rax, rbx\n")
+		c.WriteString("    or rax, rbx\n")
 		c.push("rax")
 		return nil
 	case "*":
@@ -111,7 +124,7 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    mul rbx\n")
+		c.WriteString("    mul rbx\n")
 		c.push("rax")
 		return nil
 	case "==":
@@ -119,9 +132,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    sete al\n") // Set AL if equal
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    sete al\n") // Set AL if equal
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	case "!=":
@@ -129,9 +142,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    setne al\n") // Set AL if not equal
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    setne al\n") // Set AL if not equal
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	case "<":
@@ -139,9 +152,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    setl al\n") // Set AL if less than
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    setl al\n") // Set AL if less than
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	case ">":
@@ -149,9 +162,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    setg al\n")
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    setg al\n")
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	case "<=":
@@ -159,9 +172,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    setle al\n")
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    setle al\n")
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	case ">=":
@@ -169,9 +182,9 @@ func (c *NASMElf64Compiler) VisitBinaryExpression(be *parser.BinaryExpression) e
 		be.Right.Accept(c)
 		c.pop("rbx")
 		c.pop("rax")
-		c.Out.WriteString("    cmp rax, rbx\n")
-		c.Out.WriteString("    setge al\n")
-		c.Out.WriteString("    movzx rax, al\n")
+		c.WriteString("    cmp rax, rbx\n")
+		c.WriteString("    setge al\n")
+		c.WriteString("    movzx rax, al\n")
 		c.push("rax")
 		return nil
 	default:
@@ -194,8 +207,7 @@ func (c *NASMElf64Compiler) VisitExpressionStatement(es *parser.ExpressionStatem
 }
 
 func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarator) error {
-	currentScope := c.VariableScopes[len(c.VariableScopes)-1]
-	if _, exists := currentScope[vd.Id]; exists {
+	if _, exists := c.StackManager.GetVariableOffset(vd.Id); exists {
 		return &exeptions.CompilerError{
 			File:    vd.Start.Position.Filename,
 			Line:    vd.Start.Position.Line,
@@ -206,9 +218,7 @@ func (c *NASMElf64Compiler) VisitVariableDeclarator(vd *parser.VariableDeclarato
 	if err := vd.Init.Accept(c); err != nil {
 		return err
 	}
-	currentScope[vd.Id] = &variable{
-		StackLocation: c.StackSize,
-	}
+	c.StackManager.AddVariable(vd.Id, 8)
 	return nil
 }
 
@@ -217,7 +227,7 @@ func (c *NASMElf64Compiler) VisitVariableDeclaration(vd *parser.VariableDeclarat
 }
 
 func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error {
-	variable, exists := c.findVariable(vl.Id)
+	variable, exists := c.StackManager.GetVariableOffset(vl.Id)
 	if !exists {
 		return &exeptions.CompilerError{
 			File:    vl.Start.Position.Filename,
@@ -226,43 +236,76 @@ func (c *NASMElf64Compiler) VisitVariableLookup(vl *parser.VariableLookup) error
 			Message: fmt.Sprintf("CompileError: Undeclared Identifier '%s'", vl.Id),
 		}
 	}
-	c.Out.WriteString(fmt.Sprintf("    mov rax, QWORD [rbp - %d]\n", (variable.StackLocation)*8))
+	if variable > 0 {
+		c.WriteString(fmt.Sprintf("    mov rax, QWORD [rbp + %d]\n", variable))
+	} else {
+		c.WriteString(fmt.Sprintf("    mov rax, QWORD [rbp - %d]\n", variable*-1))
+	}
+
 	c.push("rax")
+	return nil
+}
+func (c *NASMElf64Compiler) VisitCallExpression(ce *parser.CallExpression) error {
+	for _, arg := range ce.Args {
+		arg.Accept(c)
+	}
+	c.WriteString(fmt.Sprintf("    call %s\n", ce.Identifier))
+	// TODO cleaner solution for that instead of poping all the args from the stack
+	for i := 0; i < len(ce.Args); i++ {
+		c.pop("rbx")
+	}
+	c.push("rax") // to put the return value on the stack like the other expressions
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitFunction(fn *parser.Function) error {
+	c.InFunction = true
+	c.WriteString(fmt.Sprintf("%s:\n", fn.Id)) // function label
+	c.StackManager.StartNewStackFrame(c.GetOut())
+	fn.Parameters.Accept(c)
+	fn.Body.Accept(c)
+	c.StackManager.CloseCurrentStackFrame(c.GetOut())
+	c.WriteString("    ret\n")
+
+	c.InFunction = false
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitFunctionDeclaration(fd *parser.FunctionDeclaration) error {
-	return nil
+	return fd.Function.Accept(c)
 }
 
 func (c *NASMElf64Compiler) VisitIfStatment(is *parser.IfStatment) error {
 	c.ConditionCount += 1
+
 	if err := is.Test.Accept(c); err != nil {
 		return err
 	}
-	tmpCondCount := c.ConditionCount
-	tmpStackCount := c.StackSize
+	tmpStackCount := c.StackManager.StackSize / 8
 	c.pop("rax")
-	c.Out.WriteString("    test rax, rax\n")
-	c.Out.WriteString(fmt.Sprintf("    jz .CE%d\n", tmpCondCount))
+	tmpCondCount := c.ConditionCount
+
+	c.WriteString("    test rax, rax\n")
+	c.WriteString(fmt.Sprintf("    jz .CE%d\n", tmpCondCount))
 	is.Consequent.Accept(c)
-	c.Out.WriteString(fmt.Sprintf("    jmp .CF%d\n", tmpCondCount))
-	c.Out.WriteString(fmt.Sprintf(".CE%d:\n", tmpCondCount))
+	c.WriteString(fmt.Sprintf("    jmp .CF%d\n", tmpCondCount))
+	c.WriteString(fmt.Sprintf(".CE%d:\n", tmpCondCount))
 	if is.Alternate != nil {
 		is.Alternate.Accept(c)
 	}
-	c.Out.WriteString(fmt.Sprintf(".CF%d:\n", tmpCondCount))
-	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+	c.WriteString(fmt.Sprintf(".CF%d:\n", tmpCondCount))
+	for tmpStackCount < c.StackManager.StackSize/8 {
 		c.pop("rax")
 	}
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitReturnStatment(rs *parser.ReturnStatment) error {
+	rs.Argument.Accept(c)
+	c.pop("rax")
+	c.WriteString("    mov rsp, rbp\n")
+	c.WriteString("    pop rbp\n")
+	c.WriteString("    ret\n")
 	return nil
 }
 
@@ -280,20 +323,20 @@ func (c *NASMElf64Compiler) VisitBreakStatment(bs *parser.BreakStatment) error {
 }
 
 func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
-
+	tmpStackCount := c.StackManager.StackSize / 8
 	c.LoopCount += 1
 	tmpCount := c.LoopCount
-	tmpStackCount := c.StackSize
 	if err := fs.Init.Accept(c); err != nil {
 		return err
 	}
-	c.Out.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
+	c.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
+
 	if err := fs.Test.Accept(c); err != nil {
 		return err
 	}
 	c.pop("rax")
-	c.Out.WriteString("    test rax, rax\n")
-	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
+	c.WriteString("    test rax, rax\n")
+	c.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
 	c.InLoop = true
 	if err := fs.Body.Accept(c); err != nil {
 		return err
@@ -302,9 +345,10 @@ func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
 	if err := fs.Update.Accept(c); err != nil {
 		return err
 	}
-	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
-	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
-	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+
+	c.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
+	c.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
+	for tmpStackCount < c.StackManager.StackSize/8 {
 		c.pop("rax")
 	}
 	return nil
@@ -313,37 +357,35 @@ func (c *NASMElf64Compiler) VisitForStatment(fs *parser.ForStatment) error {
 func (c *NASMElf64Compiler) VisitWhileStatment(ws *parser.WhileStatment) error {
 	c.LoopCount += 1
 	tmpCount := c.LoopCount
-	tmpStackCount := c.StackSize
-
-	c.Out.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
+	tmpStackCount := c.StackManager.StackSize / 8
+	c.WriteString(fmt.Sprintf(".L%d:\n", tmpCount))
 
 	if err := ws.Test.Accept(c); err != nil {
 		return err
 	}
 	c.pop("rax")
-	c.Out.WriteString("    test rax, rax\n")
-	c.Out.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
+	c.WriteString("    test rax, rax\n")
+	c.WriteString(fmt.Sprintf("    jz .E%d\n", tmpCount))
 	c.InLoop = true
 	if err := ws.Body.Accept(c); err != nil {
 		return err
 	}
 	c.InLoop = false
-	for ; tmpStackCount < c.StackSize; c.StackSize-- {
+	for tmpStackCount < c.StackManager.StackSize/8 {
 		c.pop("rax")
 	}
-	c.Out.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
-	c.Out.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
+	c.WriteString(fmt.Sprintf("    jmp .L%d\n", tmpCount))
+	c.WriteString(fmt.Sprintf(".E%d:\n", tmpCount))
+
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitBlockStatement(bs *parser.BlockStatement) error {
-	c.VariableScopes = append(c.VariableScopes, make(map[string]*variable))
 	for _, node := range bs.Instructions {
 		if err := node.Accept(c); err != nil {
 			return err
 		}
 	}
-	c.VariableScopes = c.VariableScopes[:len(c.VariableScopes)-1]
 	return nil
 }
 
@@ -351,14 +393,14 @@ func (c *NASMElf64Compiler) VisitExitStatment(es *parser.ExitStatment) error {
 	if err := es.Argument.Accept(c); err != nil {
 		return err
 	}
-	c.Out.WriteString("    mov rax, 60\n")
+	c.WriteString("    mov rax, 60\n")
 	c.pop("rdi")
-	c.Out.WriteString("    syscall\n")
+	c.WriteString("    syscall\n")
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatement) error {
-	variable, exists := c.findVariable(as.Identifier)
+	variable, exists := c.StackManager.GetVariableOffset(as.Identifier)
 	if !exists {
 		return &exeptions.CompilerError{
 			File:    as.Start.Position.Filename,
@@ -369,29 +411,36 @@ func (c *NASMElf64Compiler) VisitAssignmentStatement(as *parser.AssignmentStatem
 	}
 	as.Value.Accept(c)
 	c.pop("rax")
-	c.Out.WriteString(fmt.Sprintf("    mov QWORD [rbp - %d], rax\n", (variable.StackLocation)*8))
+	if variable > 0 {
+		c.WriteString(fmt.Sprintf("    mov QWORD [rbp + %d], rax\n", variable))
+	} else {
+		c.WriteString(fmt.Sprintf("    mov QWORD [rbp - %d], rax\n", variable*-1))
+	}
+
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitProgram(p *parser.Program) error {
-	c.Out.WriteString("global _start\n")
-	c.Out.WriteString("_start:\n")
-	c.Out.WriteString("    push rbp\n")     // Save current base pointer
-	c.Out.WriteString("    mov rbp, rsp\n") // Set new base pointer to current stack pointer
+	c.WriteString("global _start\n")
+	c.WriteString("_start:\n")
+	c.StackManager.StartNewStackFrame(c.GetOut())
 	for _, stmt := range p.Instructions {
 		if err := stmt.Accept(c); err != nil {
 			return err
 		}
 	}
-	c.Out.WriteString("    mov rsp, rbp\n")
-	c.Out.WriteString("    pop rbp\n")
-	c.Out.WriteString("    mov rax, 60\n")
-	c.Out.WriteString("    mov rdi, 0\n")
-	c.Out.WriteString("    syscall\n")
+	c.StackManager.CloseCurrentStackFrame(c.GetOut())
+	c.WriteString("    mov rax, 60\n")
+	c.WriteString("    mov rdi, 0\n")
+	c.WriteString("    syscall\n")
 	return nil
 }
 
 func (c *NASMElf64Compiler) VisitParams(pa *parser.Params) error {
+
+	for i, param := range pa.Args {
+		c.StackManager.AddParam(param, len(pa.Args), i, 8)
+	}
 	return nil
 }
 
@@ -401,7 +450,7 @@ func (c *NASMElf64Compiler) Compile(outDir, outFile string) error {
 	}
 	os.RemoveAll(outDir)
 	os.Mkdir(outDir, 0755)
-	ioutil.WriteFile(fmt.Sprintf("%s/%s.asm", outDir, outFile), []byte(c.Out.String()), 0755)
+	ioutil.WriteFile(fmt.Sprintf("%s/%s.asm", outDir, outFile), []byte(c.Out.String()+c.OutFn.String()), 0755)
 
 	cmdNasm := exec.Command("nasm", "-felf64", fmt.Sprintf("%s/%s.asm", outDir, outFile))
 	err := cmdNasm.Run()

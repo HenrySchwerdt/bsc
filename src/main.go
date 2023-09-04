@@ -11,7 +11,7 @@ import (
 
 const VERSION_MAJOR = 0
 const VERSION_MINOR = 0
-const VERSION_PATCH = 2
+const VERSION_PATCH = 3
 
 func main() {
 	app := &cli.App{
