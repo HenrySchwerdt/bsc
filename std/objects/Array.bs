@@ -1,0 +1,6 @@
+
+
+class Array<T> extends Object {
+    int length;
+
+}

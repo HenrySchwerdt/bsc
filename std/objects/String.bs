@@ -1,0 +1,20 @@
+class String extends Object {
+    
+    init(arr: int8[]) {
+
+    }
+
+    init() {
+
+    }
+
+    split(): String[] {
+
+    }
+
+    indexOf(c: int8): int {
+
+    }
+
+
+}
