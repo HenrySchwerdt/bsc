@@ -1,13 +1,5 @@
 
 
-fn print(arg : Int) : void {
+const print : (Serialiazable) => void = (arg : Serialiazable) => {
 
-}
-
-fn print(arg : Float) : void {
-
-}
-
-fn print(arg: String) : void {
-    
 }

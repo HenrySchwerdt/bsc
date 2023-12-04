@@ -1,0 +1,10 @@
+@file_req_c("<stdlib.h>", "<time.h>")
+
+
+fn seed(value: int) : void {
+    c_srand(value);
+}
+
+fn random() : float {
+
+}

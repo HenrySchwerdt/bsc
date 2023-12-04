@@ -1,6 +1,6 @@
 import syscalls from "sys_calls";
 
-fn exit(code : Int) void {
+fn exit(code : Int): void {
     syscalls.syscall_exit();
 }
 

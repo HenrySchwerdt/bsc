@@ -8,9 +8,24 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 )
 
+func extractExitCode(filename string) (int, error) {
+	re := regexp.MustCompile(`(\d+)\.bs$`)
+	matches := re.FindStringSubmatch(filename)
+	if matches != nil && len(matches) > 1 {
+		return strconv.Atoi(matches[1])
+	}
+	return 0, fmt.Errorf("no exit code found in filename")
+}
+
+func trimExtension(filename string) string {
+	return strings.TrimSuffix(filename, ".bs")
+}
 func TestBsCPrograms(t *testing.T) {
 	files, _ := ioutil.ReadDir("./examples")
 	for _, file := range files {

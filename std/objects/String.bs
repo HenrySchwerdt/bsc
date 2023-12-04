@@ -1,4 +1,4 @@
-class String extends Object {
+export class String extends Object {
     
     init(arr: int8[]) {
 

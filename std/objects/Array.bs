@@ -1,6 +1,5 @@
 
 
-class Array<T> extends Object {
+export class Array<T> extends Object {
     int length;
-
 }

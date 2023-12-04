@@ -1,5 +1,62 @@
 # bsc
 
+# BNF
+```
+<program> ::= <statement>*
+
+<statement> ::= <declaration-statement>
+            | <ternary-statement>
+            | <assignment-statement>
+            | <call-statement>
+            | <while-statement>
+            | <for-statement>
+            | <if-statement>
+            | <block-statement>
+            | <fn-declaration-statement>
+            | <import-statement>
+
+# Statements
+<import-statement> ::= 'import' '{' IDENTIFIER (, IDENTIFIER)* '}' 'from' '\''PATH'\''
+<fn-declaration-statement> ::= 'fn' IDENTIFIER '(' <param>? (',' <param>)* ')' ':' <type> <block-statement>
+<if-statement> ::= 'if' '(' <expression> ')' <block-statement> ('else' <block-statement>)?
+<while-statement> ::= 'while' '(' <expression> ')' <block-statement>
+<for-statement> ::= 'for' '(' (<var-declaration> | <assignment-expression>)? ';' <expression> ';' <assignment-expression> ')' <block-statement>
+<block-statement> ::= '{' <statement>* '}'
+<call-statement> ::= <call-expression>';'
+<ternary-statement> ::= <ternary-expression>';'
+<assignment-statement> ::= <assignment-expression>';'
+<declaration-statement> ::= <var-declaration-expression>';'
+
+
+# Expressions
+<assignment-expression> ::= IDENTIFIER '=' <expression>
+
+<var-declaration-expression> ::= <specifier> IDENTIFIER (: <type>)? '=' <expression> | <specifier> IDENTIFIER : <type>
+<expression> ::= <logical-or-expression>
+
+<logical-or-expression> ::= <logical-and-expression> ('||' <logical-and-expression>)*
+<logical-and-expression> ::= <equality-expression> ('&&' <equality-expression>)*
+<equality-expression> ::= <relational-expression> (('==' | '!=') <relational-expression>)*
+<relational-expression> ::= <additive-expression> (('<' | '>' | '<=' | '>=') <additive-expression>)*
+<additive-expression> ::= <multiplicative-expression> (('+' | '-') <multiplicative-expression>)*
+<multiplicative-expression> ::= <unary-expression> (('*' | '/' | '%') <unary-expression>)*
+<unary-expression> ::= ('+' | '-' | '!')* <primary-expression>
+
+<primary-expression> ::= IDENTIFIER
+                | LITERAL
+                | '(' <expression> ')'
+                | <call-expression>
+<call-expression> ::= IDENTIFIER '(' <expression>? (,<expression>)* ')'
+
+# Util
+<specifier> ::= 'let' | 'const'
+<type> ::= 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'bool' | 'void' | 'float32' | 'float64' | <complex-type>
+<complex-type> ::= IDENTIFIER ('<' <complex-type> '>')? || '(' <type>? (',' <type>)* ')' '=>' <type>
+<param> ::= IDENTIFIER ':' <type>
+
+```
+
+
 ## Examples
 ### Loops
 ```bs
@@ -30,7 +87,7 @@ exit(sum);
 ```
 
 ### Rekursion
-Currently you can only create int functions that return an integer. Soon there will be other types and build in std.
+Currently you can only create int functions that return an integer. Soon there will be other <type>s and build in std.
 ```bs
 // Example for Fib in BlockScript
 fn fib(n) Int {
