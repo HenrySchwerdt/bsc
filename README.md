@@ -14,6 +14,9 @@
             | <block-statement>
             | <fn-declaration-statement>
             | <import-statement>
+            | <break-statement>
+            | <continue-statement>
+            | <return-statement>
 
 # Statements
 <import-statement> ::= 'import' '{' IDENTIFIER (, IDENTIFIER)* '}' 'from' '\''PATH'\''
@@ -26,6 +29,9 @@
 <ternary-statement> ::= <ternary-expression>';'
 <assignment-statement> ::= <assignment-expression>';'
 <declaration-statement> ::= <var-declaration-expression>';'
+<break-statement> ::= 'break' ';'
+<continue-statement> ::= 'continue' ';'
+<return-statement> ::= 'return' <expression> ';'
 
 
 # Expressions
