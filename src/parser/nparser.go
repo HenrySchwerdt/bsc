@@ -180,9 +180,10 @@ func (t *BlockStatement) Accept(v Visitor) error {
 }
 
 type AssignmentExpression struct {
-	Identifier string      `parser:"@Ident"`
-	Operator   string      `parser:"@('='|'+='|'-='|'*='|'/=' |'|=')"`
-	Expression *Expression `parser:"@@"`
+	Identifier       string            `parser:"@Ident"`
+	Operator         string            `parser:"@('='|'+='|'-='|'*='|'/=' |'|=')"`
+	Expression       *Expression       `parser:"@@?"`
+	ArrayInitializer *ArrayInitializer `parser:"@@?"`
 }
 
 func (t *AssignmentExpression) Accept(v Visitor) error {
@@ -190,14 +191,23 @@ func (t *AssignmentExpression) Accept(v Visitor) error {
 }
 
 type VarDeclarationExpression struct {
-	Specifier  string      `parser:"@('let'|'const')"`
-	Identifier string      `parser:"@Ident"`
-	Type       *Type       `parser:"':' @@?"`
-	Expression *Expression `parser:"'=' @@"`
+	Specifier        string            `parser:"@('let'|'const')"`
+	Identifier       string            `parser:"@Ident"`
+	Type             *Type             `parser:"':' @@?"`
+	Expression       *Expression       `parser:"('=' @@)?"`
+	ArrayInitializer *ArrayInitializer `parser:"('=' @@)?"`
 }
 
 func (t *VarDeclarationExpression) Accept(v Visitor) error {
 	return v.VisitVarDeclarationExpression(t)
+}
+
+type ArrayInitializer struct {
+	Values []Value `parser:"'[' @@? (',' @@)* ']'"`
+}
+
+func (t *ArrayInitializer) Accept(v Visitor) error {
+	return v.VisitArrayInitializer(t)
 }
 
 type Expression struct {
@@ -276,10 +286,11 @@ func (t *UnaryExpression) Accept(v Visitor) error {
 }
 
 type PrimaryExpression struct {
-	Call       *CallExpression `parser:"@@"`
-	Literal    *Value          `parser:"| @@"`
-	Expression *Expression     `parser:"| '(' @@ ')'"`
-	Identifier *string         `parser:"| @Ident"`
+	Call        *CallExpression `parser:"@@"`
+	Literal     *Value          `parser:"| @@"`
+	ArrayLookup *ArrayLookup    `parser:"| @@"`
+	Expression  *Expression     `parser:"| '(' @@ ')'"`
+	Identifier  *string         `parser:"| @Ident"`
 }
 
 func (t *PrimaryExpression) Accept(v Visitor) error {
@@ -293,6 +304,15 @@ type CallExpression struct {
 
 func (t *CallExpression) Accept(v Visitor) error {
 	return v.VisitCallExpression(t)
+}
+
+type ArrayLookup struct {
+	Identifier string     `parser:"@Ident"`
+	Index      Expression `parser:"'[' @@ ']'"`
+}
+
+func (t *ArrayLookup) Accept(v Visitor) error {
+	return v.VisitArrayLookup(t)
 }
 
 // Utils
@@ -330,7 +350,8 @@ type Param struct {
 
 type Type struct {
 	Pos   lexer.Position
-	Value string `parser:"@( 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'bool' | 'void' | 'float32' | 'float64' )"`
+	Base  string `parser:"@( 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'bool' | 'void' | 'float32' | 'float64' )"`
+	Array bool   `parser:"@('[' ']')*"`
 }
 
 func NewNParser() *participle.Parser[Program] {
@@ -340,7 +361,7 @@ func NewNParser() *participle.Parser[Program] {
 		{Name: "Float", Pattern: `(?:\d*\.\d+|\d+\.\d*)`}, // Pattern for Float
 		{Name: "Int", Pattern: `\d+`},                     // Pattern for Int
 		{Name: "String", Pattern: `'(\\'|[^'])*'`},        // Pattern for String      // Two-character tokens
-		{Name: "Punct", Pattern: `\+=|-=|/=|\*=|<=|>=|==|!=|&&|\|\||[-[!@#$%^&*()+_={}\|:;"'<,>.?/]`},
+		{Name: "Punct", Pattern: `\+=|-=|/=|\*=|<=|>=|==|!=|&&|\|\||[-[!@#$%^&*()+_={}\[\]\|:;"'<,>.?/]`},
 		{Name: "Whitespace", Pattern: `[ \t\n\r]+`},
 	})
 
@@ -381,4 +402,6 @@ type Visitor interface {
 	VisitCallStatement(t *CallStatement) error
 	VisitStatement(t *Statement) error
 	VisitExitStatement(t *ExitStatement) error
+	VisitArrayLookup(t *ArrayLookup) error
+	VisitArrayInitializer(t *ArrayInitializer) error
 }

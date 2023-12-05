@@ -16,6 +16,7 @@ type CCompiler struct {
 	OutMain        strings.Builder
 	OutOuter       strings.Builder
 	OutIncludes    strings.Builder
+	ArrayType      string
 	LoopCount      int
 	ConditionCount int
 	InLoop         bool
@@ -103,25 +104,35 @@ func (c *CCompiler) VisitAssignmentStatement(t *parser.AssignmentStatement) erro
 }
 func (c *CCompiler) VisitFnDeclarationStatement(t *parser.FnDeclarationStatement) error {
 	c.InFunction = true
-	cType, err := convertType(t.Type.Value)
+	cType, err := convertType(t.Type.Base)
 	if err != nil {
 		return err
 	}
 	c.getBuffer().WriteString(fmt.Sprintf("%s %s(", cType, t.Identifier))
+
 	for i := 0; i < len(t.Params)-1; i++ {
 		param := t.Params[i]
-		ciType, err := convertType(param.Type.Value)
+		ciType, err := convertType(param.Type.Base)
 		if err != nil {
 			return err
 		}
-		c.getBuffer().WriteString(fmt.Sprintf("%s %s,", ciType, param.Identifier))
+
+		if param.Type.Array {
+			c.getBuffer().WriteString(fmt.Sprintf("%s* %s,", ciType, param.Identifier))
+		} else {
+			c.getBuffer().WriteString(fmt.Sprintf("%s %s,", ciType, param.Identifier))
+		}
 	}
 	param := t.Params[len(t.Params)-1]
-	ciType, err := convertType(param.Type.Value)
+	ciType, err := convertType(param.Type.Base)
 	if err != nil {
 		return err
 	}
-	c.getBuffer().WriteString(fmt.Sprintf("%s %s)", ciType, param.Identifier))
+	if param.Type.Array {
+		c.getBuffer().WriteString(fmt.Sprintf("%s* %s)", ciType, param.Identifier))
+	} else {
+		c.getBuffer().WriteString(fmt.Sprintf("%s %s)", ciType, param.Identifier))
+	}
 	err = t.Body.Accept(c)
 	if err != nil {
 		return err
@@ -181,6 +192,18 @@ func (c *CCompiler) VisitForStatement(t *parser.ForStatement) error {
 	c.InLoop = false
 	return nil
 }
+
+func (c *CCompiler) VisitArrayLookup(t *parser.ArrayLookup) error {
+	c.getBuffer().WriteString(fmt.Sprintf("%s[", t.Identifier))
+	t.Index.Accept(c)
+	c.getBuffer().WriteString("]")
+	return nil
+}
+
+func (c *CCompiler) VisitArrayInitializer(t *parser.ArrayInitializer) error {
+	return nil
+}
+
 func (c *CCompiler) VisitBreakStatement(t *parser.BreakStatement) error {
 	if c.InLoop {
 		c.getBuffer().WriteString("break;")
@@ -242,14 +265,38 @@ func (c *CCompiler) VisitAssignmentExpression(t *parser.AssignmentExpression) er
 	return nil
 }
 func (c *CCompiler) VisitVarDeclarationExpression(t *parser.VarDeclarationExpression) error {
-	cType, err := convertType(t.Type.Value)
-	if err != nil {
-		return err
-	}
-	c.getBuffer().WriteString(fmt.Sprintf("%s %s=", cType, t.Identifier))
-	err = t.Expression.Accept(c)
-	if err != nil {
-		return err
+	cType, _ := convertType(t.Type.Base)
+	if t.ArrayInitializer != nil {
+		c.getBuffer().WriteString(fmt.Sprintf("%s* %s=malloc(%d * sizeof(%s));", cType, t.Identifier, len(t.ArrayInitializer.Values), cType))
+		for i, value := range t.ArrayInitializer.Values {
+			c.getBuffer().WriteString(fmt.Sprintf("%s[%d]=", t.Identifier, i))
+			switch v := (value).(type) {
+			case parser.Bool:
+				c.getBuffer().WriteString(fmt.Sprintf("%s", v.Value))
+			case parser.Float:
+				c.getBuffer().WriteString(fmt.Sprintf("%f", v.Value))
+			case parser.Int:
+				c.getBuffer().WriteString(fmt.Sprintf("%d", v.Value))
+			case parser.String:
+				c.getBuffer().WriteString(fmt.Sprintf("%s", v.Value))
+			default:
+				return errors.New("Error")
+			}
+			if i != len(t.ArrayInitializer.Values)-1 {
+				c.getBuffer().WriteString(";")
+			}
+
+		}
+	} else {
+		cType, err := convertType(t.Type.Base)
+		if err != nil {
+			return err
+		}
+		c.getBuffer().WriteString(fmt.Sprintf("%s %s=", cType, t.Identifier))
+		err = t.Expression.Accept(c)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -332,6 +379,8 @@ func (c *CCompiler) VisitPrimaryExpression(t *parser.PrimaryExpression) error {
 		default:
 			return errors.New("Error")
 		}
+	} else if t.ArrayLookup != nil {
+		t.ArrayLookup.Accept(c)
 	}
 	return nil
 }

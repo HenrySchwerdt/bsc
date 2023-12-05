@@ -15,7 +15,6 @@ func TestShouldParseEverything(t *testing.T) {
 		file, _ := os.Open("./examples/complex_test.bs")
 		parser := parser.NewNParser()
 		ast, err := parser.Parse("complex_test.bs", file)
-		fmt.Println(len(ast.Statements))
 		repr.Println(ast)
 		fmt.Println(err)
 		// when
