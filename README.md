@@ -60,6 +60,56 @@
 <complex-type> ::= IDENTIFIER ('<' <complex-type> '>')? || '(' <type>? (',' <type>)* ')' '=>' <type>
 <param> ::= IDENTIFIER ':' <type>
 
+
+Program = Statement* .
+Statement = VarDeclarationStatement 
+            | AssignmentStatement 
+            | FnDeclarationStatement 
+            | ImportStatement 
+            | BlockStatement 
+            | IfStatement 
+            | WhileStatement 
+            | ForStatement 
+            | BreakStatement 
+            | ReturnStatement 
+            | ContinueStatement 
+            | ExitStatement 
+            | CallStatement .
+VarDeclarationStatement = VarDeclarationExpression ";" .
+VarDeclarationExpression = ("let" | "const") <ident> ":" Type? ("=" Expression)? ("=" ArrayInitializer)? .
+Type = ("int8" | "int16" | "int32" | "int64" | "uint8" | "uint16" | "uint32" | "uint64" | "bool" | "void" | "float32" | "float64") ("[" "]")* .
+Expression = LogicalOrExpression .
+LogicalOrExpression = LogicalAndExpression ("||" LogicalOrExpression)? .
+LogicalAndExpression = EqualityExpression ("&&" LogicalAndExpression)? .
+EqualityExpression = RelationalExpression ("==" | "!=")? EqualityExpression? .
+RelationalExpression = AdditiveExpression ("<" | ">" | "<=" | ">=")? RelationalExpression? .
+AdditiveExpression = MultiplicativeExpression ("+" | "-")? AdditiveExpression? .
+MultiplicativeExpression = UnaryExpression ("*" | "/" | "%")? MultiplicativeExpression? .
+UnaryExpression = PrimaryExpression .
+PrimaryExpression = CallExpression | Value | ArrayLookup | ("(" Expression ")") | <ident> .
+CallExpression = <ident> "(" Expression? ("," Expression)* ")" .
+Value = Float | Int | String | Bool .
+Float = <float> .
+Int = <int> .
+String = <string> .
+Bool = ("true" | "false") .
+ArrayLookup = <ident> "[" Expression "]" .
+ArrayInitializer = "[" Value? ("," Value)* "]" .
+AssignmentStatement = AssignmentExpression ";" .
+AssignmentExpression = <ident> ("=" | "+=" | "-=" | "*=" | "/=" | "|=") Expression? ArrayInitializer? .
+FnDeclarationStatement = "fn" <ident> "(" Param? ("," Param)* ")" ":" Type BlockStatement .
+Param = <ident> ":" Type .
+BlockStatement = "{" Statement* "}" .
+ImportStatement = "import" "{" <ident> ("," <ident>)* "}" "from" <string> .
+IfStatement = "if" "(" Expression ")" BlockStatement ("else" BlockStatement)? .
+WhileStatement = "while" "(" Expression ")" BlockStatement .
+ForStatement = "for" "(" VarDeclarationExpression? ";" Expression? ";" AssignmentExpression? ")" BlockStatement .
+BreakStatement = "break" ";" .
+ReturnStatement = "return" Expression ";" .
+ContinueStatement = "continue" ";" .
+ExitStatement = "exit" "(" Expression ")" ";" .
+CallStatement = CallExpression ";" .
+
 ```
 
 

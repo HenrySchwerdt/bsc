@@ -16,7 +16,6 @@ type CCompiler struct {
 	OutMain        strings.Builder
 	OutOuter       strings.Builder
 	OutIncludes    strings.Builder
-	ArrayType      string
 	LoopCount      int
 	ConditionCount int
 	InLoop         bool
