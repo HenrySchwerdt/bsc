@@ -2,7 +2,6 @@ package compiler_test
 
 import (
 	"bsc/src/compiler"
-	"bsc/src/lexer"
 	"bsc/src/parser"
 	"fmt"
 	"io/ioutil"
@@ -39,9 +38,8 @@ func TestBsCPrograms(t *testing.T) {
 			fileName := folderName
 			file, _ := os.Open("./examples/" + fileName + ".bs")
 			defer file.Close()
-			tokenizer := lexer.NewTokenizer(file)
-			parser := parser.NewParser(tokenizer)
-			ast, _ := parser.Parse()
+			parser := parser.NewNParser()
+			ast, _ := parser.Parse(file.Name(), file)
 			compiler := compiler.NewCCompiler(ast)
 
 			// when

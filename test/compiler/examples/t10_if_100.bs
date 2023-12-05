@@ -1,5 +1,5 @@
-var x = 10;
-var hundret = 0;
+let x: int32 = 10;
+let hundret: int32 = 0;
 if (x * 10 == 100) {
     hundret = x * 10;
 } else {

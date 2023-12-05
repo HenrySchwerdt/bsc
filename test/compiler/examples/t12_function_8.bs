@@ -1,4 +1,4 @@
-fn fib(n) Int {
+fn fib(n : int32) : int32 {
     if (n <= 1) {
         return n;
     }

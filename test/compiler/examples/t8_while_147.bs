@@ -1,7 +1,7 @@
-var x = 0;
-var sum = 0;
+let x : int32 = 0;
+let sum : int32 = 0;
 while (x <= 5) {
-    var xI = 0;
+    let xI: int32 = 0;
     while(xI <= 5) {
         xI += 1;
         sum += xI;

@@ -1,9 +1,9 @@
-var prev = 0;
-var next = 1;
-var nFib = 10;
-var it = 1;
+let prev : int32 = 0;
+let next : int32 = 1;
+let nFib : int32 = 10;
+let it : int32 = 1;
 while(it < nFib) {
-    var sum = prev + next;
+    let sum : int32 = prev + next;
     prev = next;
     next = sum;
     it += 1;

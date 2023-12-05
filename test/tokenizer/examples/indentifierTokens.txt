@@ -1,9 +1,0 @@
-value
-ifvalue
-elsevalue
-forvalue
-whilevalue
-snake_case
-camelCase
-CONST_CASE
-i9

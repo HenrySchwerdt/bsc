@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bsc/src/compiler"
-	"bsc/src/lexer"
 	"bsc/src/parser"
 	"encoding/json"
 	"errors"
@@ -102,13 +101,12 @@ func Compile(ctx *cli.Context) error {
 	if entryErr != nil {
 		return errors.New("File does not exist.")
 	}
-	tokenizer := lexer.NewTokenizer(file)
-	parser := parser.NewParser(tokenizer)
-	ast, parsingError := parser.Parse()
+	parser := parser.NewNParser()
+	ast, parsingError := parser.Parse(file.Name(), file)
 	if parsingError != nil {
 		return parsingError
 	}
-	compiler := compiler.NewNASMElf64Compiler(ast)
+	compiler := compiler.NewCCompiler(ast)
 	return compiler.Compile(buildDirName, artifactName)
 }
 
