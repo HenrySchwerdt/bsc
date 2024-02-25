@@ -1,6 +1,6 @@
 fn sum(arr: int32[]) : int32 {
     let sum : int32 = 0;
-    for (let i: int32 = 0; i < 7; i+=1) {
+    for (let i: int32 = 0; i < 7; i= i + 1) {
         sum += arr[i];
     }
     return sum;

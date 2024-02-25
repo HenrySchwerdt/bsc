@@ -3,10 +3,10 @@ let sum : int32 = 0;
 while (x <= 5) {
     let xI: int32 = 0;
     while(xI <= 5) {
-        xI += 1;
-        sum += xI;
+        xI = xI + 1;
+        sum = sum + xI;
     }
-    x += 1;
-    sum += x;
+    x = x + 1;
+    sum = sum + x;
 }
 exit(sum);

@@ -6,6 +6,6 @@ while(it < nFib) {
     let sum : int32 = prev + next;
     prev = next;
     next = sum;
-    it += 1;
+    it = it + 1;
 }
 exit(prev);

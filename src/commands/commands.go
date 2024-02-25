@@ -31,7 +31,7 @@ func LoadProjectSettings() (*ProjectSettings, error) {
 func InitProject(ctx *cli.Context) error {
 	projectName := ctx.Args().First()
 	if projectName == "" {
-		return fmt.Errorf("Please provide a project name")
+		return fmt.Errorf("please provide a project name")
 	}
 
 	fmt.Println("Initializing Project:", projectName)
@@ -95,18 +95,18 @@ func Compile(ctx *cli.Context) error {
 	os.Mkdir(buildDirName, 0755)
 	entryPoint := ctx.Args().First()
 	if entryPoint == "" && err != nil {
-		return errors.New("No src file declared in command or in the project.json.")
+		return errors.New("no src file declared in command or in the project.json")
 	}
 	file, entryErr := os.Open(entryPoint)
 	if entryErr != nil {
-		return errors.New("File does not exist.")
+		return errors.New("file does not exist")
 	}
 	parser := parser.NewNParser()
 	ast, parsingError := parser.Parse(file.Name(), file)
 	if parsingError != nil {
 		return parsingError
 	}
-	compiler := compiler.NewCCompiler(ast)
+	compiler := compiler.NewBQCCompiler(ast)
 	return compiler.Compile(buildDirName, artifactName)
 }
 
@@ -115,18 +115,18 @@ func DefaultAction(ctx *cli.Context) error {
 		command := ctx.Args().First()
 		settings, err := LoadProjectSettings()
 		if err != nil {
-			return errors.New("The provided command cannot be found in the project.json")
+			return errors.New("the provided command cannot be found in the project.json")
 		}
 		toExecute, exists := settings.Commands[command]
 		if !exists {
-			return errors.New("The provided command cannot be found in the project.json")
+			return errors.New("the provided command cannot be found in the project.json")
 		}
 		err = exec.Command("sh", "-c", toExecute).Run()
 		if err != nil {
 			return errors.New(err.Error())
 		}
 	} else {
-		return errors.New("No command provided.")
+		return errors.New("no command provided")
 	}
 	return nil
 }

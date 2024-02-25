@@ -1,5 +1,7 @@
 fn gcd(a: int32, b: int32) : int32 {
-    if (b == 0) {return a};
+    if (b == 0) {
+        return a;
+    }
     return gcd(b, a % b);
 }
 exit(gcd(56, 98));

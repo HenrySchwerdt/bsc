@@ -1,7 +1,7 @@
 let sum: int32 = 0;
-for (let i: int32 = 0; i<=5; i += 1) {
+for (let i: int32 = 0; i<=5; i = i + 1) {
     sum = sum + 1;
-    for (let j: int32 = 0; j <= 5; j += 1) {
+    for (let j: int32 = 0; j <= 5; j = j + 1) {
         sum = sum + j;
     }   
 }
