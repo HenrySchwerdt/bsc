@@ -1,12 +1,16 @@
-let x : int32 = 0;
-let sum : int32 = 0;
-while (x <= 5) {
-    let xI: int32 = 0;
-    while(xI <= 5) {
-        xI = xI + 1;
-        sum = sum + xI;
+import { terminate } from "std/process";
+
+export fn main() : int32 {
+    let x : int32 = 0;
+    let sum : int32 = 0;
+    while (x <= 5) {
+        let xI: int32 = 0;
+        while(xI <= 5) {
+            xI = xI + 1;
+            sum = sum + xI;
+        }
+        x = x + 1;
+        sum = sum + x;
     }
-    x = x + 1;
-    sum = sum + x;
+    terminate(sum);
 }
-exit(sum);

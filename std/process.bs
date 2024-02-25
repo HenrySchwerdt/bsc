@@ -1,10 +1,3 @@
-import syscalls from "sys_calls";
-
-fn exit(code : Int): void {
-    syscalls.syscall_exit();
-}
-
-
-export {
-    exit,
+export fn terminate(code: int32): void {
+    extern_exit(code);
 }

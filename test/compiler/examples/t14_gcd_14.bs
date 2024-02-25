@@ -1,7 +1,13 @@
+import { terminate } from "std/process";
+
 fn gcd(a: int32, b: int32) : int32 {
     if (b == 0) {
         return a;
     }
     return gcd(b, a % b);
 }
-exit(gcd(56, 98));
+
+export fn main() : int32 {
+    let x : int32 = gcd(56, 98);
+    terminate(x);
+}

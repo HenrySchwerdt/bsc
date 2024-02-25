@@ -1,11 +1,16 @@
-let prev : int32 = 0;
-let next : int32 = 1;
-let nFib : int32 = 10;
-let it : int32 = 1;
-while(it < nFib) {
-    let sum : int32 = prev + next;
-    prev = next;
-    next = sum;
-    it = it + 1;
+import { terminate } from "std/process";
+
+export fn main(): int32 {
+    let prev : int32 = 0;
+    let next : int32 = 1;
+    let nFib : int32 = 10;
+    let it : int32 = 1;
+    while(it < nFib) {
+        let sum : int32 = prev + next;
+        prev = next;
+        next = sum;
+        it = it + 1;
+    }
+    terminate(prev);
 }
-exit(prev);
+

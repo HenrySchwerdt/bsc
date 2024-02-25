@@ -3,28 +3,28 @@ package compiler
 import (
 	"bsc/src/ir"
 	"bsc/src/parser"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 type BQCCompiler struct {
-	Ast            parser.Program
-	OutMain        strings.Builder
-	OutOuter       strings.Builder
-	Module         ir.BQCModule
-	CurrentFrame   [][]ir.IR
-	LoopCount      int
-	ConditionCount int
-	Vars           string
-	ContinueLabel  string
-	BreakLabel     string
-	lastUsedVar    rune
-	InLoop         bool
-	Counter        int
-	InFunction     bool
+	Ast           parser.Program
+	StdLibPath    string
+	Imports       []ir.BQCModule
+	Module        ir.BQCModule
+	CurrentFrame  [][]ir.IR
+	Vars          string
+	ContinueLabel string
+	BreakLabel    string
+	lastUsedVar   rune
+	InLoop        bool
+	Counter       int
+	InFunction    bool
 }
 
 func (c *BQCCompiler) getCurrentFrame() []ir.IR {
@@ -32,6 +32,7 @@ func (c *BQCCompiler) getCurrentFrame() []ir.IR {
 }
 
 func (c *BQCCompiler) addIR(ir ir.IR) {
+
 	c.CurrentFrame[len(c.CurrentFrame)-1] = append(c.CurrentFrame[len(c.CurrentFrame)-1], ir)
 }
 
@@ -46,20 +47,15 @@ func (c *BQCCompiler) popFrame() []ir.IR {
 }
 
 func NewBQCCompiler(ast *parser.Program) *BQCCompiler {
-	var builder strings.Builder
-	var builderfn strings.Builder
 	return &BQCCompiler{
-		Ast:            *ast,
-		OutMain:        builder,
-		OutOuter:       builderfn,
-		Module:         ir.BQCModule{},
-		CurrentFrame:   make([][]ir.IR, 0),
-		LoopCount:      0,
-		ConditionCount: 0,
-		lastUsedVar:    'a' - 1,
-		InLoop:         false,
-		Counter:        0,
-		InFunction:     false,
+		Ast:          *ast,
+		Imports:      make([]ir.BQCModule, 0),
+		Module:       ir.BQCModule{},
+		CurrentFrame: make([][]ir.IR, 0),
+		lastUsedVar:  'a' - 1,
+		InLoop:       false,
+		Counter:      0,
+		InFunction:   false,
 	}
 }
 
@@ -82,31 +78,12 @@ func (c *BQCCompiler) VisitProgram(t *parser.Program) error {
 		Functions: make([]ir.IR, 0),
 	}
 	c.Module = module
-	c.pushFrame()
 	for _, stmt := range t.Statements {
 		err := stmt.Accept(c)
 		if err != nil {
 			return err
 		}
 	}
-	tmpName := c.getNextVariableName()
-	c.addIR(ir.BQCLiteral{
-		Value: "0",
-		Type:  ir.BQCType{Rep: "w", Bytes: 4},
-		Tmp:   tmpName,
-	})
-	c.addIR(ir.BQCReturn{
-		Tmp: tmpName,
-	})
-	frame := c.popFrame()
-	c.Module.Functions = append(c.Module.Functions, ir.BQCFunction{
-		Export: true,
-		Name:   "main",
-		Type:   ir.BQCType{Rep: "w", Bytes: 4},
-		Params: make([]ir.Paramter, 0),
-		Body:   frame,
-	})
-
 	return nil
 }
 func (c *BQCCompiler) VisitVarDeclarationStatement(t *parser.VarDeclarationStatement) error {
@@ -118,6 +95,7 @@ func (c *BQCCompiler) VisitAssignmentStatement(t *parser.AssignmentStatement) er
 	return nil
 }
 func (c *BQCCompiler) VisitFnDeclarationStatement(t *parser.FnDeclarationStatement) error {
+	fmt.Println("In function ", t.Identifier)
 	c.pushFrame()
 	c.InFunction = true
 	params := make([]ir.Paramter, 0)
@@ -137,11 +115,20 @@ func (c *BQCCompiler) VisitFnDeclarationStatement(t *parser.FnDeclarationStateme
 	}
 	c.InFunction = false
 	frame := c.popFrame()
+	var ftype ir.BQCType
+	if t.Type.Base == "void" {
+		ftype = ir.BQCType{Rep: "", Bytes: 0}
+	} else {
+		ftype = ir.BQCType{Rep: "w", Bytes: 4}
+	}
+	frame = append(frame, ir.BQCReturn{
+		HasValue: false,
+	})
 	c.Module.Functions = append(c.Module.Functions, ir.BQCFunction{
-		Export: false,
+		Export: t.Export,
 		Name:   t.Identifier,
 		Params: params,
-		Type:   ir.BQCType{Rep: "w", Bytes: 4}, // TODO fix this
+		Type:   ftype,
 		Body:   frame,
 	})
 	return nil
@@ -257,7 +244,8 @@ func (c *BQCCompiler) VisitReturnStatement(t *parser.ReturnStatement) error {
 	t.Value.Accept(c)
 	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
 	c.addIR(ir.BQCReturn{
-		Tmp: lastTmp,
+		Tmp:      lastTmp,
+		HasValue: true, // TODO: fix this
 	})
 	return nil
 }
@@ -267,6 +255,21 @@ func (c *BQCCompiler) VisitExitStatement(t *parser.ExitStatement) error {
 	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
 	c.addIR(ir.BQCFunctionCall{
 		Name: "exit",
+		Args: []ir.Paramter{
+			{
+				Type: ir.BQCType{Rep: "w", Bytes: 4},
+				Name: lastTmp,
+			},
+		},
+	})
+	return nil
+}
+
+func (c *BQCCompiler) VisitPrintStatement(t *parser.PrintStatement) error {
+	t.Value.Accept(c)
+	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
+	c.addIR(ir.BQCFunctionCall{
+		Name: "print",
 		Args: []ir.Paramter{
 			{
 				Type: ir.BQCType{Rep: "w", Bytes: 4},
@@ -447,7 +450,6 @@ func (c *BQCCompiler) VisitUnaryExpression(t *parser.UnaryExpression) error {
 	return t.Value.Accept(c)
 }
 func (c *BQCCompiler) VisitPrimaryExpression(t *parser.PrimaryExpression) error {
-
 	if t.Call != nil {
 		return t.Call.Accept(c)
 	} else if t.Expression != nil {
@@ -521,6 +523,23 @@ func (c *BQCCompiler) VisitCallExpression(t *parser.CallExpression) error {
 	return nil
 }
 func (c *BQCCompiler) VisitImportStatement(t *parser.ImportStatement) error {
+	file, err := os.Open(filepath.Join(c.StdLibPath, strings.Trim(t.File, "\"")+".bs"))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	parser := parser.NewNParser()
+	ast, err := parser.Parse(file.Name(), file)
+	if err != nil {
+		return err
+	}
+	compiler := NewBQCCompiler(ast)
+	err = compiler.compile()
+	if err != nil {
+		return err
+	}
+	c.Imports = append(c.Imports, compiler.Imports...)
+	c.Imports = append(c.Imports, compiler.Module)
 	return nil
 }
 func (c *BQCCompiler) VisitCallStatement(t *parser.CallStatement) error {
@@ -555,22 +574,54 @@ func (c *BQCCompiler) VisitStatement(t *parser.Statement) error {
 	return nil
 }
 
-func (c *BQCCompiler) Compile(outDir, outFile string) error {
+func (c *BQCCompiler) compile() error {
 	if err := (c.Ast).Accept(c); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (c *BQCCompiler) Compile(outDir, outFile string) error {
+	// Compile the program and check for errors
+	err := c.compile()
+	if err != nil {
+		return err
+	}
+
+	// Remove existing output directory and create a new one
 	os.RemoveAll(outDir)
 	os.Mkdir(outDir, 0755)
-	_, err := exec.LookPath("qbe")
+
+	// Check if QBE is available
+	_, err = exec.LookPath("qbe")
 	if err != nil {
 		fmt.Println("QBE not found in the system.")
-		os.Exit(1)
+		return err
 	}
-	os.WriteFile(fmt.Sprintf("%s/%s.ssa", outDir, outFile), []byte(c.Module.ToString()), 0755)
-	cmd := exec.Command("qbe", "-o", fmt.Sprintf("%s/%s.s", outDir, outFile), fmt.Sprintf("%s/%s.ssa", outDir, outFile))
-	cmd.Run()
-	cmd = exec.Command("cc", "-o", fmt.Sprintf("%s/%s", outDir, outFile), fmt.Sprintf("%s/%s.s", outDir, outFile))
-	cmd.Run()
+
+	var concatenatedModules bytes.Buffer
+	for _, importedModule := range c.Imports {
+		concatenatedModules.WriteString(importedModule.ToString())
+	}
+	concatenatedModules.WriteString(c.Module.ToString())
+
+	tmpFile := filepath.Join(outDir, outFile+".ssa")
+	err = os.WriteFile(tmpFile, concatenatedModules.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
+	cmdQBE := exec.Command("qbe", "-o", filepath.Join(outDir, outFile+".s"), tmpFile)
+	qbeOutput, err := cmdQBE.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error running qbe: %v\n%s", err, string(qbeOutput))
+	}
+
+	cmdCC := exec.Command("cc", "-o", filepath.Join(outDir, outFile), filepath.Join(outDir, outFile+".s"))
+	ccOutput, err := cmdCC.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error running cc: %v\n%s", err, string(ccOutput))
+	}
 
 	return nil
 }

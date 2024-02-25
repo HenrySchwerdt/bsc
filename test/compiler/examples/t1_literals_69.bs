@@ -1,1 +1,5 @@
-exit(69);
+import { terminate } from "std/process";
+
+export fn main() : int32 {
+    terminate(69);
+}

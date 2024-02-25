@@ -1,5 +1,9 @@
+import { terminate } from "std/process";
 fn factorial(n: int32) : int32 {
     if (n == 0) { return 1; }
     return n * factorial(n - 1);
 }
-exit(factorial(4));
+
+export fn main() : int32 {
+    terminate(factorial(4));
+}

@@ -3,6 +3,7 @@ package compiler_test
 import (
 	"bsc/src/compiler"
 	"bsc/src/parser"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -47,7 +48,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -76,7 +77,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -105,7 +106,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -134,7 +135,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -163,7 +164,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -192,7 +193,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -221,7 +222,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -250,7 +251,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -279,7 +280,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -307,7 +308,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -336,7 +337,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -365,7 +366,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -394,7 +395,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -423,7 +424,7 @@ func TestQBEPrograms(t *testing.T) {
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
 		_ = compiler.Compile(fileName, "out")
 		if err != nil {
@@ -451,10 +452,13 @@ func TestQBEPrograms(t *testing.T) {
 		defer file.Close()
 		parser := parser.NewNParser()
 		ast, err := parser.Parse(file.Name(), file)
+		if err != nil {
+			t.Fatalf("Parsing error: %s", err)
+		}
 		compiler := compiler.NewBQCCompiler(ast)
-
+		compiler.StdLibPath = "../../"
 		// when
-		_ = compiler.Compile(fileName, "out")
+		err = compiler.Compile(fileName, "out")
 		if err != nil {
 			t.Fatalf("Compilation error: %s", err)
 		}
@@ -472,4 +476,36 @@ func TestQBEPrograms(t *testing.T) {
 		}
 		os.RemoveAll(fileName)
 	})
+
+	t.Run("t16_hello_world", func(t *testing.T) {
+		// given
+		// fileName := "t16_hello_world"
+		file, err := os.Open("./examples/t16_hello_world.bs")
+		fmt.Println(file, err)
+		defer file.Close()
+		parser := parser.NewNParser()
+		ast, _ := parser.Parse(file.Name(), file)
+		s, err := json.Marshal(ast)
+		// compiler := compiler.NewBQCCompiler(ast)
+		fmt.Println(s, err)
+		// // when
+		// _ = compiler.Compile(fileName, "out")
+		// if err != nil {
+		// 	t.Fatalf("Compilation error: %s", err)
+		// }
+		// // then
+		// cmd := exec.Command("./" + fileName + "/out")
+		// if err := cmd.Run(); err != nil {
+		// 	if exitError, ok := err.(*exec.ExitError); ok {
+		// 		fmt.Println(exitError.ExitCode())
+		// 		if exitError.ExitCode() != 14 {
+		// 			t.Fatalf("Expected exit code %d, but got: %d", 14, exitError.ExitCode())
+		// 		}
+		// 	} else {
+		// 		t.Fatalf("Could not run the program: %s", err)
+		// 	}
+		// }
+		// os.RemoveAll(fileName)
+	})
+
 }

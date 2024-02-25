@@ -1,3 +1,7 @@
-let x: int32 = 12;
-let y: int32 = 10;
-exit(x - y);
+import { terminate } from "std/process";
+
+export fn main() : int32 {
+    let x: int32 = 12;
+    let y: int32 = 10;
+    terminate(x - y);
+}

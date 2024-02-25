@@ -13,6 +13,7 @@ type IR interface {
 
 type BQCModule struct {
 	Functions []IR
+	Data      []IR
 }
 
 func (bqc BQCModule) ToString() string {
@@ -200,10 +201,14 @@ func (bqc BQCFunctionCall) GetTmp() string {
 }
 
 type BQCReturn struct {
-	Tmp string
+	Tmp      string
+	HasValue bool
 }
 
 func (bqc BQCReturn) ToString() string {
+	if !bqc.HasValue {
+		return fmt.Sprintf("%sret\n", IDENTATION)
+	}
 	return fmt.Sprintf("%sret %s\n", IDENTATION, "%"+bqc.Tmp)
 }
 
@@ -280,4 +285,13 @@ type BQCJump struct {
 
 func (bqc BQCJump) ToString() string {
 	return fmt.Sprintf("%sjmp %s\n", IDENTATION, bqc.Label)
+}
+
+type StringData struct {
+	Name  string
+	Value string
+}
+
+func (sd StringData) ToString() string {
+	return fmt.Sprintf(`data $%s = {b "%s" ,b 0}\n`, "%p_"+sd.Name, sd.Value)
 }

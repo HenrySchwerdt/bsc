@@ -59,8 +59,8 @@ func (pg *Statement) Accept(v Visitor) error {
 }
 
 type ImportStatement struct {
-	Imports []*string `parser:"'import' '{' @Ident (',' @Ident)* '}'"`
-	File    string    `parser:"'from' @String"`
+	Imports []string `parser:"'import' '{' @Ident (',' @Ident)* '}'"`
+	File    string   `parser:"'from' @String ';'"`
 }
 
 func (varDec *ImportStatement) Accept(v Visitor) error {
@@ -96,6 +96,7 @@ func (assSt *AssignmentStatement) Accept(v Visitor) error {
 
 type FnDeclarationStatement struct {
 	Pos        lexer.Position
+	Export     bool            `parser:"@('export')"`
 	Identifier string          `parser:"'fn' @Ident"`
 	Params     []*Param        `parser:"'(' @@? (',' @@)* ')'"`
 	Type       Type            `parser:"':' @@"`
@@ -164,11 +165,19 @@ func (t *ReturnStatement) Accept(v Visitor) error {
 }
 
 type ExitStatement struct {
-	Value Expression `parser:"'exit' '(' @@ ')' ';'"`
+	Value Expression `parser:"'extern_exit' '(' @@ ')' ';'"`
 }
 
 func (t *ExitStatement) Accept(v Visitor) error {
 	return v.VisitExitStatement(t)
+}
+
+type PrintStatement struct {
+	Value Expression `parser:"'print' '(' @@ ')' ';'"`
+}
+
+func (t *PrintStatement) Accept(v Visitor) error {
+	return v.VisitPrintStatement(t)
 }
 
 type BlockStatement struct {
@@ -350,7 +359,7 @@ type Param struct {
 
 type Type struct {
 	Pos   lexer.Position
-	Base  string `parser:"@( 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'bool' | 'void' | 'float32' | 'float64' )"`
+	Base  string `parser:"@( 'int8' | 'int16' | 'int32' | 'int64' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'bool' | 'void' | 'float32' | 'float64' | 'str' )"`
 	Array bool   `parser:"@('[' ']')*"`
 }
 
@@ -360,7 +369,7 @@ func NewNParser() *participle.Parser[Program] {
 		{Name: "Ident", Pattern: `[a-zA-Z]\w*`},
 		{Name: "Float", Pattern: `(?:\d*\.\d+|\d+\.\d*)`}, // Pattern for Float
 		{Name: "Int", Pattern: `\d+`},                     // Pattern for Int
-		{Name: "String", Pattern: `'(\\'|[^'])*'`},        // Pattern for String      // Two-character tokens
+		{Name: "String", Pattern: `"(\\"|[^"])*"`},        // Pattern for String      // Two-character tokens
 		{Name: "Punct", Pattern: `\+=|-=|/=|\*=|<=|>=|==|!=|&&|\|\||[-[!@#$%^&*()+_={}\[\]\|:;"'<,>.?/]`},
 		{Name: "Whitespace", Pattern: `[ \t\n\r]+`},
 	})
@@ -402,6 +411,7 @@ type Visitor interface {
 	VisitCallStatement(t *CallStatement) error
 	VisitStatement(t *Statement) error
 	VisitExitStatement(t *ExitStatement) error
+	VisitPrintStatement(t *PrintStatement) error
 	VisitArrayLookup(t *ArrayLookup) error
 	VisitArrayInitializer(t *ArrayInitializer) error
 }
