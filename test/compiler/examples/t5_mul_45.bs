@@ -1,8 +1,6 @@
-import { terminate } from "std/process";
-
 export fn main() : int32 {
     let x : int32 = 10;
     let y : int32 = 5;
     x = x * y + 5 - x;
-    terminate(x); 
+    return x;
 }

@@ -1,5 +1,3 @@
-import { terminate } from "std/process";
-
 export fn main(): int32 {
     let prev : int32 = 0;
     let next : int32 = 1;
@@ -11,6 +9,6 @@ export fn main(): int32 {
         next = sum;
         it = it + 1;
     }
-    terminate(prev);
+    return prev;
 }
 

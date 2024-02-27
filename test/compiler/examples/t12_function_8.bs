@@ -1,4 +1,4 @@
-import { terminate } from "std/process";
+import { exit } from "std/process";
 
 fn fib(n : int32) : int32 {
     if (n <= 1) {
@@ -8,6 +8,7 @@ fn fib(n : int32) : int32 {
 }
 
 export fn main() : int32 {
-    terminate(fib(6));
+    exit(fib(6));
+    return 0;
 }
 

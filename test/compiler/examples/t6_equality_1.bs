@@ -1,9 +1,7 @@
-import { terminate } from "std/process";
-
 export fn main() : int32 {
     let x :int32 = 1 == 2;
     let y :int32= 0;
     y = x == y;
-    terminate(y);
+    return y;
 }
 

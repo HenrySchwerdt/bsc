@@ -1,5 +1,3 @@
-import { terminate } from "std/process";
-
 export fn main() : int32 {
     let sum : int32 = 0;
     let i : int32 = 1;
@@ -10,5 +8,5 @@ export fn main() : int32 {
             break;
         }
     }
-    terminate(sum);
+    return sum;
 }

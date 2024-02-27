@@ -37,7 +37,11 @@ func (bqc BQCFunction) ToString() string {
 	if bqc.Export {
 		builder.WriteString("export ")
 	}
-	builder.WriteString(fmt.Sprintf("function %s $%s(", bqc.Type.ToString(), bqc.Name))
+	if bqc.Name == "main" {
+		builder.WriteString(fmt.Sprintf("function %s $%s(", bqc.Type.ToString(), bqc.Name))
+	} else {
+		builder.WriteString(fmt.Sprintf("function %s $%s(", bqc.Type.ToString(), "bs_"+bqc.Name))
+	}
 	for i, param := range bqc.Params {
 		builder.WriteString(param.ToString())
 		if i < len(bqc.Params)-1 {
@@ -74,6 +78,22 @@ type AssigmentDeclaration struct {
 
 func (ad AssigmentDeclaration) ToString() string {
 	return fmt.Sprintf("%sstore%s %s, %s\n", IDENTATION, ad.Type.ToString(), "%"+ad.Value, "%p_"+ad.Name)
+}
+
+type ModifyAssigmentDeclaration struct {
+	Name     string
+	Type     BQCType
+	Value    string
+	Tmp      string
+	Operator string
+}
+
+func (iad ModifyAssigmentDeclaration) ToString() string {
+	builder := strings.Builder{}
+	builder.WriteString(fmt.Sprintf("%s%s =%s load%s %s\n", IDENTATION, "%"+iad.Tmp, iad.Type.ToString(), iad.Type.ToString(), "%p_"+iad.Name))
+	builder.WriteString(fmt.Sprintf("%s%s =%s %s %s, %s\n", IDENTATION, "%"+iad.Tmp, iad.Type.ToString(), iad.Operator, "%"+iad.Tmp, "%"+iad.Value))
+	builder.WriteString(fmt.Sprintf("%sstore%s %s, %s\n", IDENTATION, iad.Type.ToString(), "%"+iad.Tmp, "%p_"+iad.Name))
+	return builder.String()
 }
 
 type BQCIf struct {
@@ -171,11 +191,12 @@ func (bqc BQCFor) ToString() string {
 }
 
 type BQCFunctionCall struct {
-	Name    string
-	Args    []Paramter
-	NonVoid bool
-	Tmp     string
-	Type    BQCType
+	Name     string
+	IsExtern bool
+	Args     []Paramter
+	NonVoid  bool
+	Tmp      string
+	Type     BQCType
 }
 
 func (bqc BQCFunctionCall) ToString() string {
@@ -185,7 +206,11 @@ func (bqc BQCFunctionCall) ToString() string {
 	} else {
 		builder.WriteString(IDENTATION)
 	}
-	builder.WriteString(fmt.Sprintf("call $%s(", bqc.Name))
+	if bqc.IsExtern || bqc.Name == "main" {
+		builder.WriteString(fmt.Sprintf("call $%s(", bqc.Name))
+	} else {
+		builder.WriteString(fmt.Sprintf("call $%s(", "bs_"+bqc.Name))
+	}
 	for i, arg := range bqc.Args {
 		builder.WriteString(arg.ToString())
 		if i < len(bqc.Args)-1 {

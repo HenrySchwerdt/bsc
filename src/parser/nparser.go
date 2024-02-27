@@ -96,7 +96,7 @@ func (assSt *AssignmentStatement) Accept(v Visitor) error {
 
 type FnDeclarationStatement struct {
 	Pos        lexer.Position
-	Export     bool            `parser:"@('export')"`
+	Export     bool            `parser:"@('export')?"`
 	Identifier string          `parser:"'fn' @Ident"`
 	Params     []*Param        `parser:"'(' @@? (',' @@)* ')'"`
 	Type       Type            `parser:"':' @@"`
@@ -370,7 +370,7 @@ func NewNParser() *participle.Parser[Program] {
 		{Name: "Float", Pattern: `(?:\d*\.\d+|\d+\.\d*)`}, // Pattern for Float
 		{Name: "Int", Pattern: `\d+`},                     // Pattern for Int
 		{Name: "String", Pattern: `"(\\"|[^"])*"`},        // Pattern for String      // Two-character tokens
-		{Name: "Punct", Pattern: `\+=|-=|/=|\*=|<=|>=|==|!=|&&|\|\||[-[!@#$%^&*()+_={}\[\]\|:;"'<,>.?/]`},
+		{Name: "Punct", Pattern: `\+=|-=|%=|/=|\*=|<=|>=|==|!=|&&|\|\||[-[!@#$%^&*()+_={}\[\]\|:;"'<,>.?/]`},
 		{Name: "Whitespace", Pattern: `[ \t\n\r]+`},
 	})
 

@@ -1,5 +1,3 @@
-import { terminate } from "std/process";
-
 export fn main() : int32 {
     let x: int32 = 10;
     let hundret: int32 = 0;
@@ -8,5 +6,5 @@ export fn main() : int32 {
     } else {
         exit(30);
     }
-    terminate(hundret);
+    return hundret;
 }

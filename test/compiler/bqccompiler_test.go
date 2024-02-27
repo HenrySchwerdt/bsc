@@ -508,4 +508,36 @@ func TestQBEPrograms(t *testing.T) {
 		// os.RemoveAll(fileName)
 	})
 
+	t.Run("t17_process_std_10", func(t *testing.T) {
+		// given
+		fileName := "t17_process_std_10"
+		file, _ := os.Open("./examples/t17_process_std_10.bs")
+		defer file.Close()
+		parser := parser.NewNParser()
+		ast, err := parser.Parse(file.Name(), file)
+		if err != nil {
+			t.Fatalf("Parsing error: %s", err)
+		}
+		compiler := compiler.NewBQCCompiler(ast)
+		compiler.StdLibPath = "../../"
+		// when
+		err = compiler.Compile(fileName, "out")
+		if err != nil {
+			t.Fatalf("Compilation error: %s", err)
+		}
+		// then
+		cmd := exec.Command("./" + fileName + "/out")
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				fmt.Println(exitError.ExitCode())
+				if exitError.ExitCode() != 10 {
+					t.Fatalf("Expected exit code %d, but got: %d", 10, exitError.ExitCode())
+				}
+			} else {
+				t.Fatalf("Could not run the program: %s", err)
+			}
+		}
+		os.RemoveAll(fileName)
+	})
+
 }

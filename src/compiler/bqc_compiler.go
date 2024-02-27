@@ -95,7 +95,6 @@ func (c *BQCCompiler) VisitAssignmentStatement(t *parser.AssignmentStatement) er
 	return nil
 }
 func (c *BQCCompiler) VisitFnDeclarationStatement(t *parser.FnDeclarationStatement) error {
-	fmt.Println("In function ", t.Identifier)
 	c.pushFrame()
 	c.InFunction = true
 	params := make([]ir.Paramter, 0)
@@ -121,9 +120,11 @@ func (c *BQCCompiler) VisitFnDeclarationStatement(t *parser.FnDeclarationStateme
 	} else {
 		ftype = ir.BQCType{Rep: "w", Bytes: 4}
 	}
-	frame = append(frame, ir.BQCReturn{
-		HasValue: false,
-	})
+	if t.Type.Base == "void" {
+		frame = append(frame, ir.BQCReturn{
+			HasValue: false,
+		})
+	}
 	c.Module.Functions = append(c.Module.Functions, ir.BQCFunction{
 		Export: t.Export,
 		Name:   t.Identifier,
@@ -254,7 +255,8 @@ func (c *BQCCompiler) VisitExitStatement(t *parser.ExitStatement) error {
 	t.Value.Accept(c)
 	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
 	c.addIR(ir.BQCFunctionCall{
-		Name: "exit",
+		Name:     "exit",
+		IsExtern: true,
 		Args: []ir.Paramter{
 			{
 				Type: ir.BQCType{Rep: "w", Bytes: 4},
@@ -269,7 +271,8 @@ func (c *BQCCompiler) VisitPrintStatement(t *parser.PrintStatement) error {
 	t.Value.Accept(c)
 	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
 	c.addIR(ir.BQCFunctionCall{
-		Name: "print",
+		Name:     "printf",
+		IsExtern: true,
 		Args: []ir.Paramter{
 			{
 				Type: ir.BQCType{Rep: "w", Bytes: 4},
@@ -292,11 +295,54 @@ func (c *BQCCompiler) VisitBlockStatement(t *parser.BlockStatement) error {
 func (c *BQCCompiler) VisitAssignmentExpression(t *parser.AssignmentExpression) error {
 	t.Expression.Accept(c)
 	lastTmp := c.getCurrentFrame()[len(c.getCurrentFrame())-1].(ir.IRTmp).GetTmp()
-	c.addIR(ir.AssigmentDeclaration{
-		Name:  t.Identifier,
-		Type:  ir.BQCType{Rep: "w", Bytes: 4}, // TODO: fix this
-		Value: lastTmp,
-	})
+	switch t.Operator {
+	case "+=":
+		c.addIR(ir.ModifyAssigmentDeclaration{
+			Name:     t.Identifier,
+			Value:    lastTmp,
+			Tmp:      c.getNextVariableName(),
+			Operator: "add",
+			Type:     ir.BQCType{Rep: "w", Bytes: 4},
+		})
+	case "-=":
+		c.addIR(ir.ModifyAssigmentDeclaration{
+			Name:     t.Identifier,
+			Value:    lastTmp,
+			Tmp:      c.getNextVariableName(),
+			Operator: "sub",
+			Type:     ir.BQCType{Rep: "w", Bytes: 4},
+		})
+	case "*=":
+		c.addIR(ir.ModifyAssigmentDeclaration{
+			Name:     t.Identifier,
+			Value:    lastTmp,
+			Tmp:      c.getNextVariableName(),
+			Operator: "mul",
+			Type:     ir.BQCType{Rep: "w", Bytes: 4},
+		})
+	case "/=":
+		c.addIR(ir.ModifyAssigmentDeclaration{
+			Name:     t.Identifier,
+			Value:    lastTmp,
+			Tmp:      c.getNextVariableName(),
+			Operator: "div",
+			Type:     ir.BQCType{Rep: "w", Bytes: 4},
+		})
+	case "%=":
+		c.addIR(ir.ModifyAssigmentDeclaration{
+			Name:     t.Identifier,
+			Value:    lastTmp,
+			Tmp:      c.getNextVariableName(),
+			Operator: "rem",
+			Type:     ir.BQCType{Rep: "w", Bytes: 4},
+		})
+	default:
+		c.addIR(ir.AssigmentDeclaration{
+			Name:  t.Identifier,
+			Type:  ir.BQCType{Rep: "w", Bytes: 4}, // TODO: fix this
+			Value: lastTmp,
+		})
+	}
 	return nil
 }
 func (c *BQCCompiler) VisitVarDeclarationExpression(t *parser.VarDeclarationExpression) error {
