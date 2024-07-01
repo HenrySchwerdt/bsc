@@ -1,2 +1,0 @@
-let greeting: str = "Hello, World!\n";
-print(greeting);

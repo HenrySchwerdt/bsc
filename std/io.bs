@@ -1,5 +1,0 @@
-
-
-const print : (Serialiazable) => void = (arg : Serialiazable) => {
-
-}

@@ -1,4 +1,0 @@
-fn add(x, y) Int {
-    return x + y;
-}
-var sum = add(10, 11);

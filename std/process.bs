@@ -1,3 +1,0 @@
-export fn exit(code: int32): void {
-    extern_exit(code);
-}
