@@ -1,18 +1,17 @@
 #ifndef ERROR_H
 #define ERROR_H
-#include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 typedef enum {
     ERROR_LEXER,
     ERROR_PARSER,
-    ERROR_RUNTIME,
+    ERROR_COMPILER,
     ERROR_INTERNAL
 } ErrorType;
 
 typedef struct {
-    char *message;
+    const char *message;
     int line;
     int column;
     const char *filename;

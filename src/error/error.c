@@ -4,8 +4,7 @@
 Error init_error(ErrorType type, const char *message, int line, int column, const char *filename, const char *line_text) {
     Error error;
     error.type = type;
-    error.message = (char *)malloc(strlen(message) + 1);
-    strcpy(error.message, message);
+    error.message = message;
     error.line = line;
     error.column = column;
     error.filename = filename;
@@ -13,11 +12,13 @@ Error init_error(ErrorType type, const char *message, int line, int column, cons
     return error;
 }
 
-// Print errors with the following format and colors:
-// Lexing error at src/main.c:1:1
-// 1 | #include <stdio.h>
-//   | ^^^^^^^^^^^^^^^^^^
-// Unexpected character '#'
+/* 
+Print errors with the following format:
+Lexing error at src/main.c:1:1
+1 | #include <stdio.h>
+  | ^^^^^^^^^^^^^^^^^^
+Unexpected character '#'
+*/
 void print_error(Error *error) {
     printf("\033[1;31m");
     switch (error->type) {
@@ -27,8 +28,8 @@ void print_error(Error *error) {
         case ERROR_PARSER:
             printf("Parsing error");
             break;
-        case ERROR_RUNTIME:
-            printf("Runtime error");
+        case ERROR_COMPILER:
+            printf("Compiler error");
             break;
         case ERROR_INTERNAL:
             printf("Internal error");
